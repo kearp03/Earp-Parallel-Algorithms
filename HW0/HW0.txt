@@ -1,4 +1,3 @@
 - I am taking this class because I am interested in parallel processing and want to improve my coding skills.
-- I will be using parallel processing in my future work and research by looking for ways to split up tasks to be run concurrently,
- such as calculating time series or equilibrium for independent sets of parameter values.
+- I will be using parallel processing in my future work and research by looking for ways to split up tasks to be run concurrently, such as calculating time series or equilibrium for independent sets of parameter values.
 - From this class I hope to expand my programming skills by improving the way I think about parallel processes and how to code in that style.
