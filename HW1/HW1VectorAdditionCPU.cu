@@ -19,7 +19,7 @@ void innitialize();
 void addVectorsCPU(float*, float*, float*, int);
 int  check(float*, int);
 long elaspedTime(struct timeval, struct timeval);
-void cleanUp();
+void CleanUp();
 
 //Allocating the memory we will be using.
 void allocateMemory()
