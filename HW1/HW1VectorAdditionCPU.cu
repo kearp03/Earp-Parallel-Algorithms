@@ -1,5 +1,5 @@
 // Vector addition on the CPU
-// Your name
+// Kyle Earp
 // nvcc HW1VectorAdditionCPU.cu -o VectorAdditionCPU
 
 // Include files
