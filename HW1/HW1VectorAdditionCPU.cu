@@ -1,42 +1,47 @@
 // Vector addition on the CPU
-// Kyle Earp
+// Name: Kyle Earp
 // nvcc HW1VectorAdditionCPU.cu -o VectorAdditionCPU
+/*
+ What to do:
+ 1. Understand every line of code and be able to explain it in class.
+ 2. Compile, run, and play around with the code.
+*/
 
 // Include files
-#include <sys/time.h>
-#include <stdio.h>
+#include <sys/time.h> //header file with functions dealing with time
+#include <stdio.h> // header file with functions dealing with input/output
 
 // Defines
-#define N 1000 // Length of the vector
+#define N 10000 // Length of the vector
 
 // Global variables
-float *A_CPU, *B_CPU, *C_CPU; 
-float Tolerance = 0.00000001;
+float *A_CPU, *B_CPU, *C_CPU; // global pointers to dynamically allocated arrays
+float Tolerance = 0.00000001; // tolerance for float sums
 
 // Function prototypes
-void allocateMemory();
-void innitialize();
-void addVectorsCPU(float*, float*, float*, int);
-int  check(float*, int);
-long elaspedTime(struct timeval, struct timeval);
-void CleanUp();
+void allocateMemory(); // function to allocate memory for the three global arrays
+void initialize(); // function to initialize the three global arrays
+void addVectorsCPU(float*, float*, float*, int); // function to add two vectors on the CPU
+int  check(float*, int); // function to check the results of the vector addition
+long elaspedTime(struct timeval, struct timeval); // function to calculate the elapsed time
+void CleanUp(); // function to deallocate memory
 
 //Allocating the memory we will be using.
 void allocateMemory()
 {	
 	// Host "CPU" memory.				
-	A_CPU = (float*)malloc(N*sizeof(float));
+	A_CPU = (float*)malloc(N*sizeof(float)); //dynamically allocates memory for an N sized array of floats
 	B_CPU = (float*)malloc(N*sizeof(float));
 	C_CPU = (float*)malloc(N*sizeof(float));
 }
 
 //Loading values into the vectors that we will add.
-void innitialize()
+void initialize()
 {
 	for(int i = 0; i < N; i++)
 	{		
-		A_CPU[i] = (float)i;	
-		B_CPU[i] = (float)(2*i);
+		A_CPU[i] = (float)i;		// initialize A_CPU with float values of i
+		B_CPU[i] = (float)(2*i);	// initialize B_CPU with float values of 2*i
 	}
 }
 
@@ -45,29 +50,29 @@ void addVectorsCPU(float *a, float *b, float *c, int n)
 {
 	for(int id = 0; id < n; id++)
 	{ 
-		c[id] = a[id] + b[id];
+		c[id] = a[id] + b[id]; // add the two vectors and store the result in c
 	}
 }
 
 // Checking to see if anything went wrong in the vector addition.
 int check(float *c, int n)
 {
-	int id;
-	double sum = 0.0;
+	int id; // Initializing id
+	double sum = 0.0; // Initializing sum to 0.0
 	double m = n-1; // Needed the -1 because we start at 0.
 	
 	for(id = 0; id < n; id++)
 	{ 
-		sum += c[id];
+		sum += c[id]; // summing up the values in c
 	}
 	
-	if(abs(sum - 3.0*(m*(m+1))/2.0) < Tolerance) 
+	if(abs(sum - 3.0*(m*(m+1))/2.0) < Tolerance) // checking if the sum is close enough to 3.0*(m*(m+1))/2.0 => the exact sum of the two vectors
 	{
-		return(1);
+		return(1); // return 1 if true
 	}
 	else 
 	{
-		return(0);
+		return(0); // return 0 if false
 	}
 }
 
@@ -95,13 +100,13 @@ void CleanUp()
 
 int main()
 {
-	timeval start, end;
+	timeval start, end; // Structs to hold the start and end time.
 	
 	// Allocating the memory you will need.
 	allocateMemory();
 	
 	// Putting values in the vectors.
-	innitialize();
+	initialize();
 
 	// Starting the timer.	
 	gettimeofday(&start, NULL);
@@ -115,16 +120,16 @@ int main()
 	// Checking to see if all went correctly.
 	if(check(C_CPU, N) == 0)
 	{
-		printf("\n\n Something went wrong in the vector addition\n");
+		printf("\n\n Something went wrong in the vector addition\n"); // If check returns 0 then something went wrong.
 	}
 	else
 	{
-		printf("\n\n You added the two vectors correctly on the CPU");
-		printf("\n The time it took was %ld microseconds", elaspedTime(start, end));
+		printf("\n\n You added the two vectors correctly on the CPU"); // If check returns 1 then everything went correctly.
+		printf("\n The time it took was %ld microseconds", elaspedTime(start, end)); // Printing out the time it took to add the two vectors.
 	}
 	
 	// Your done so cleanup your room.	
-	CleanUp();	
+	CleanUp();
 	
 	// Making sure it flushes out anything in the print buffer.
 	printf("\n");
