@@ -1,0 +1,34 @@
+N = 1000:
+    1 microsecond
+    1 microsecond
+    1 microsecond
+    1 microsecond
+    1 microsecond
+    Average: 1 microsecond
+
+N = 10000:
+    23 microseconds
+    23 microseconds
+    22 microseconds
+    23 microseconds
+    25 microseconds
+    Average: 23.2 microseconds
+
+N = 100000:
+    244 microseconds
+    243 microseconds
+    238 microseconds
+    241 microseconds
+    240 microseconds
+    Average: 241.2
+
+N = 1000000:
+    2301 microseconds
+    2315 microseconds
+    2363 microseconds
+    2381 microseconds
+    2359 microseconds
+    Average: 2343.8 microseconds
+
+N = 10000000:
+    "Something went wrong in the vector addition"
