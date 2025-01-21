@@ -16,7 +16,7 @@
  Dude, that was too simple! I want my money back! 
  Be patient, it gets a little harder, but remember, I told you CUDA was simple.
  
- 4. call cudaDeviceSynchronize. SYnc up the CPU and the GPU. I'll expaned on this in to story at the end of 5 below.
+ 4. call cudaDeviceSynchronize. Sync up the CPU and the GPU. I'll expaned on this in to story at the end of 5 below.
  
  5. Use cudaMemcpyAsync again to copy your GPU memory back to the CPU.
  Be careful with cudaMemcpyAsync. Make sure you pay attention to the last argument you pass in the call.
@@ -219,7 +219,7 @@ int main()
 	// Copy Memory from GPU to CPU	
 	cudaMemcpyAsync(C_CPU, C_GPU, N*sizeof(float), cudaMemcpyDeviceToHost);
 	
-	// Making sure the GPU and CPU wiat until each other are at the same place.
+	// Making sure the GPU and CPU wait until each other are at the same place.
 	cudaDeviceSynchronize();
 	
 	gettimeofday(&end, NULL);
@@ -237,7 +237,7 @@ int main()
 		printf("\n The time it took on the GPU was %ld microseconds", timeGPU);
 	}
 	
-	// Your done so cleanup your room.	
+	// You're done so cleanup your room.	
 	cleanUp();	
 	
 	// Making sure it flushes out anything in the print buffer.
