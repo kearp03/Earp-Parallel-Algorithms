@@ -1,1 +1,1 @@
-nvcc HW1VectorAdditionCPU.cu -o VectorAdditionCPU
+nvcc HW1.cu -o temp

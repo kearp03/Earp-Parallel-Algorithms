@@ -1,2 +1,2 @@
-nvcc HW1VectorAdditionCPU.cu -o VectorAdditionCPU
-./VectorAdditionCPU
+nvcc HW1.cu -o temp
+./temp

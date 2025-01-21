@@ -1,6 +1,6 @@
 // Vector addition on the CPU
 // Name: Kyle Earp
-// nvcc HW1VectorAdditionCPU.cu -o VectorAdditionCPU
+// nvcc HW1.cu -o temp
 /*
  What to do:
  1. Understand every line of code and be able to explain it in class.
