@@ -1,3 +1,4 @@
+// Vector Addition on the GPU (one block)
 // Name: Kyle Earp
 // nvcc HW2.cu -o temp
 /*
