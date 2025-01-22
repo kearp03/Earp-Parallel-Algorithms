@@ -60,7 +60,7 @@
 #include <stdio.h>
 
 // Defines
-#define N 500 // Length of the vector
+#define N 1500 // Length of the vector
 
 // Global variables
 float *A_CPU, *B_CPU, *C_CPU; //CPU pointers
@@ -82,7 +82,7 @@ void cleanUp();
 // This will be the layout of the parallel space we will be using.
 void setUpDevices()
 {
-	BlockSize.x = N;
+	BlockSize.x = min(N, 1024); // The maximum number of threads per block is 1024.
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
@@ -130,8 +130,12 @@ void addVectorsCPU(float *a, float *b, float *c, int n)
 __global__ void addVectorsGPU(float *a, float *b, float *c, int n)
 {
 	int id = threadIdx.x;
-	
-	c[id] = a[id] + b[id];
+
+	// c[id] = a[id] + b[id];
+	for(int i = id; i < max(n, 1024); i += blockDim.x) // If n is larger than 1024, some threads will need to add together multiple elements
+	{
+		c[i] = a[i] + b[i];
+	}
 }
 
 // Checking to see if anything went wrong in the vector addition.
@@ -206,7 +210,7 @@ int main()
 	{ 
 		C_CPU[id] = 0.0;
 	}
-	
+
 	// Adding on the GPU
 	gettimeofday(&start, NULL);
 	
@@ -216,11 +220,11 @@ int main()
 	
 	addVectorsGPU<<<GridSize,BlockSize>>>(A_GPU, B_GPU ,C_GPU, N);
 	
-	// Copy Memory from GPU to CPU	
-	cudaMemcpyAsync(C_CPU, C_GPU, N*sizeof(float), cudaMemcpyDeviceToHost);
-	
 	// Making sure the GPU and CPU wait until each other are at the same place.
 	cudaDeviceSynchronize();
+
+	// Copy Memory from GPU to CPU	
+	cudaMemcpyAsync(C_CPU, C_GPU, N*sizeof(float), cudaMemcpyDeviceToHost);
 	
 	gettimeofday(&end, NULL);
 	timeGPU = elaspedTime(start, end);
