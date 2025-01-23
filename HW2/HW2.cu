@@ -133,7 +133,7 @@ __global__ void addVectorsGPU(float *a, float *b, float *c, int n)
 	int id = threadIdx.x;
 
 	// c[id] = a[id] + b[id];
-	for(int i = id; i < max(n, 1024); i += blockDim.x) // If n is larger than 1024, some threads will need to add together multiple elements
+	for(int i = id; i < n; i += blockDim.x) // If n is larger than 1024, some threads will need to add together multiple elements
 	{
 		c[i] = a[i] + b[i];
 	}
@@ -220,7 +220,9 @@ int main()
 	cudaMemcpyAsync(B_GPU, B_CPU, N*sizeof(float), cudaMemcpyHostToDevice);
 	
 	addVectorsGPU<<<GridSize,BlockSize>>>(A_GPU, B_GPU ,C_GPU, N);
-	
+
+	// Not 100% sure if it's needed, just added it to be safe.
+	cudaDeviceSynchronize();
 
 	// Copy Memory from GPU to CPU	
 	cudaMemcpyAsync(C_CPU, C_GPU, N*sizeof(float), cudaMemcpyDeviceToHost);
