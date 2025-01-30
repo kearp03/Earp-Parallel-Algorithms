@@ -180,7 +180,7 @@ int main()
 {
 	timeval start, end;
 	long timeCPU, timeGPU;
-	int testing = 1;
+	int testing = 0;
 
 	if(testing == 0){	
 		// Setting up the GPU
