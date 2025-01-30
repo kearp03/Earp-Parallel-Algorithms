@@ -184,7 +184,7 @@ int main()
 
 	if(testing == 0){	
 		// Setting up the GPU
-		int bestBlockSize = 128;
+		int bestBlockSize = 1024;
 		int bestGridSize = 2048;
 		setUpDevices(bestBlockSize, bestGridSize);
 		
