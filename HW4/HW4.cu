@@ -122,6 +122,7 @@ __global__ void addVectorsGPU(float *a, float *b, float *c, int n)
 {
 	// int id = blockIdx.x*blockDim.x + threadIdx.x;
 	
+	#pragma unroll 4
 	for(int id = blockIdx.x*blockDim.x + threadIdx.x; id < n; id += blockDim.x*gridDim.x)
 	{
 		c[id] = sqrt(cos(a[id])*cos(a[id]) + sin(a[id])*sin(a[id]) - 1.0 + a[id]*a[id]) + sqrt(cos(b[id])*cos(b[id]) + sin(b[id])*sin(b[id]) - 1.0 + b[id]*b[id]);
