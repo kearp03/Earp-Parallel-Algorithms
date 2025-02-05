@@ -1,2 +1,2 @@
-nvcc SimpleJuliaSetGPU.cu -o SimpleJuliaSetCPU -lglut -lGL -lm
+nvcc SimpleJuliaSetGPU.cu -o SimpleJuliaSetGPU -lglut -lGL -lm
 ./SimpleJuliaSetCPU
