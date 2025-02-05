@@ -1,1 +1,1 @@
-nvcc SimpleJuliaSetGPU.cu -o SimpleJuliaSetGPU -lglut -lGL -lm
+nvcc HW6.cu -o temp -lglut -lGL
