@@ -15,8 +15,8 @@
 // Defines
 #define MAXMAG 10.0 // If you grow larger than this, we assume that you have escaped.
 #define MAXITERATIONS 200 // If you have not escaped after this many attempts, we assume you are not going to escape.
-#define A  -0.824	//Real part of C
-#define B  -0.1711	//Imaginary part of C
+#define A  -0.8		//Real part of C		-0.8	-0.824
+#define B  0.156	//Imaginary part of C	0.156	0.17711
 
 // Global variables
 unsigned int WindowWidth = 1024;
