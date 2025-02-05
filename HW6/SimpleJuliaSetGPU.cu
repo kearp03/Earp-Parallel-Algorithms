@@ -60,7 +60,7 @@ void setUpDevices()
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 
-	// We need a grid for each column of pixels.
+	// We need a block for each column of pixels.
 	GridSize.x = WindowHeight;
 	GridSize.y = 1;
 	GridSize.z = 1;
