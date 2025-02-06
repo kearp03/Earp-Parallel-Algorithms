@@ -125,7 +125,7 @@ __global__ void escapeOrNotColorGPU(float *pixels, float xMin, float stepSizeX, 
 	{
 		pixels[k] = 1.0;
 		pixels[k+1] = 0.0;
-		pixels[k+2] = 0.0;
+		pixels[k+2] = 1.0;
 	}
 }
 
