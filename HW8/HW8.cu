@@ -15,7 +15,7 @@
 #include <stdio.h>
 
 // Defines
-#define N 2000 // Length of the vector
+#define N 823 // Length of the vector
 
 // Global variables
 float *A_CPU, *B_CPU, *C_CPU; //CPU pointers
@@ -53,7 +53,7 @@ void cudaErrorCheck(const char *file, int line)
 // This will be the layout of the parallel space we will be using.
 void setUpDevices()
 {
-	BlockSize.x = 256;
+	BlockSize.x = 1000;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
@@ -107,7 +107,54 @@ void dotProductCPU(float *a, float *b, float *C_CPU, int n)
 // It multiplies vectors a and b and stores the scalar result in C_GPU[0].
 __global__ void dotProductGPU(float *a, float *b, float *C_GPU, int n)
 {
+	// Get the index of the thread
+	int id = threadIdx.x;
 	
+	// Make sure that the thread is within the range of the vectors.
+	if(id < n)
+	{
+		// Store the product of the elements of a and b in C_GPU.
+		C_GPU[id] = a[id] * b[id];
+	}
+
+	// Make sure all threads are done before we add up the elements of C_GPU.
+	__syncthreads();
+
+	// If the number of threads is odd, then we need to add the last element to the first element and make the number of threads even.
+	int blockSize = blockDim.x;
+	if(blockSize % 2 == 1)
+	{
+		blockSize--;
+		if(id == 0 && blockSize < n)
+		{
+			C_GPU[0] += C_GPU[blockSize];
+		}
+		__syncthreads();
+	}
+
+	// Fold the elements of C_GPU into C_GPU[0]. Folding on the size of the block.
+	for(int fold = blockSize/2; fold > 0; fold = fold/2)
+	{
+		// Only the threads that are less than fold will be used to add the elements of C_GPU.
+		// id + fold must be inside the array.
+		if(id < fold && id + fold < n)
+		{
+			C_GPU[id] += C_GPU[id + fold];
+		}
+		// Make sure all threads are done before we move on to the next fold.
+		__syncthreads();
+		// If fold is greater than 1 and odd, then we need to add the last element to the first element.
+		// When the fold is equal to 1, the next iteration takes care of the last element
+		if(fold > 1 && fold % 2 == 1)
+		{
+			fold--;
+			if(id == 0)
+			{
+				C_GPU[0] += C_GPU[fold];
+			}
+			__syncthreads();
+		}
+	}
 }
 
 // Checking to see if anything went wrong in the vector multiplication.
