@@ -15,7 +15,8 @@
 #include <stdio.h>
 
 // Defines
-#define N 25 // Length of the vector
+#define N 20367 // Length of the vector
+#define BLOCK_SIZE 200 // Number of threads in a block
 
 // Global variables
 float *A_CPU, *B_CPU, *C_CPU; //CPU pointers
@@ -29,8 +30,8 @@ float Tolerance = 0.01;
 void cudaErrorCheck(const char *, int);
 void setUpDevices();
 void allocateMemory();
-void innitialize();
-void dotProductCPU(float*, float*, int);
+void initialize();
+void dotProductCPU(float*, float*, float*, int);
 __global__ void dotProductGPU(float*, float*, float*, int);
 bool  check(float, float, float);
 long elaspedTime(struct timeval, struct timeval);
@@ -53,13 +54,27 @@ void cudaErrorCheck(const char *file, int line)
 // This will be the layout of the parallel space we will be using.
 void setUpDevices()
 {
-	BlockSize.x = 256;
+	BlockSize.x = BLOCK_SIZE;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
-	GridSize.x = 1;
+	GridSize.x = (int)((N-1)/BlockSize.x) + 1;
 	GridSize.y = 1;
 	GridSize.z = 1;
+
+	// Hard coding the check for the block size.
+	if(1024 < BlockSize.x)
+	{
+		printf("\n\n The block size is too large. It must be less than 1024\n");
+		exit(0);
+	}
+
+	// Hard coding the check for the grid size.
+	if(65535 < GridSize.x)
+	{
+		printf("\n\n The grid size is too large. It must be less than 65535\n");
+		exit(0);
+	}
 }
 
 // Allocating the memory we will be using.
@@ -80,7 +95,7 @@ void allocateMemory()
 }
 
 // Loading values into the vectors that we will add.
-void innitialize()
+void initialize()
 {
 	for(int i = 0; i < N; i++)
 	{		
@@ -98,7 +113,7 @@ void dotProductCPU(float *a, float *b, float *C_CPU, int n)
 	}
 	
 	for(int id = 1; id < n; id++)
-	{ 
+	{
 		C_CPU[0] += C_CPU[id];
 	}
 }
@@ -107,28 +122,48 @@ void dotProductCPU(float *a, float *b, float *C_CPU, int n)
 // It adds vectors a and b on the GPU then stores result in vector c.
 __global__ void dotProductGPU(float *a, float *b, float *c, int n)
 {
-	int id = threadIdx.x;
+	// Shared memory for the block
+	__shared__ float temp[BLOCK_SIZE];
+
+	// The id of the thread in relation to the entire parallel structure.
+	int id = threadIdx.x + blockDim.x*blockIdx.x;
 	
-	c[id] = a[id] * b[id];
+	// Setting all the values in the shared memory to zero.
+	temp[threadIdx.x] = 0.0;
+
+	// Multiplying the components of the vectors together if the id is less than n and store them into shared memory
+	if(id < n)
+	{
+		temp[threadIdx.x] = a[id] * b[id];
+	}
+	
+	// Making sure all the threads are at the same place.
 	__syncthreads();
-		
+	
+	// Doing the reduction on the shared memory.
 	int fold = blockDim.x;
 	while(1 < fold)
 	{
 		if(fold%2 != 0)
 		{
-			if(id == 0 && (fold - 1) < n)
+			if(threadIdx.x == 0 && (blockIdx.x*blockDim.x + fold - 1) < n)
 			{
-				c[0] = c[0] + c[fold - 1];
+				temp[0] += temp[fold - 1];
 			}
-			fold = fold - 1;
+			fold--;
 		}
-		fold = fold/2;
-		if(id < fold && (id + fold) < n)
+		fold /= 2;
+		if(threadIdx.x < fold && (id + fold) < n)
 		{
-			c[id] = c[id] + c[id + fold];
+			temp[threadIdx.x] += temp[threadIdx.x + fold];
 		}
 		__syncthreads();
+	}
+
+	// Putting the answer into the global memory.
+	if(threadIdx.x == 0)
+	{
+		c[blockIdx.x*blockDim.x] = temp[0];
 	}
 }
 
@@ -164,7 +199,7 @@ long elaspedTime(struct timeval start, struct timeval end)
 }
 
 // Cleaning up memory after we are finished.
-void CleanUp()
+void cleanUp()
 {
 	// Freeing host "CPU" memory.
 	free(A_CPU); 
@@ -192,24 +227,16 @@ int main()
 	allocateMemory();
 	
 	// Putting values in the vectors.
-	innitialize();
+	initialize();
 	
-	// Adding on the CPU
+	// Multiplying on the CPU
 	gettimeofday(&start, NULL);
 	dotProductCPU(A_CPU, B_CPU, C_CPU, N);
 	DotCPU = C_CPU[0];
 	gettimeofday(&end, NULL);
 	timeCPU = elaspedTime(start, end);
 	
-	if(BlockSize.x < N)
-	{
-		printf("\n\n Your vector size is larger than the block size.");
-		printf("\n Because we are only using one block this will not work.");
-		printf("\n Good Bye.\n\n");
-		exit(0);
-	}
-	
-	// Adding on the GPU
+	// Multiplying on the GPU
 	gettimeofday(&start, NULL);
 	
 	// Copy Memory from CPU to GPU		
@@ -221,18 +248,23 @@ int main()
 	dotProductGPU<<<GridSize,BlockSize>>>(A_GPU, B_GPU, C_GPU, N);
 	cudaErrorCheck(__FILE__, __LINE__);
 	
-	// Copy Memory from GPU to CPU	
-	cudaMemcpyAsync(C_CPU, C_GPU, 1*sizeof(float), cudaMemcpyDeviceToHost);
+	// Copy Memory from GPU to CPU
+	cudaMemcpyAsync(C_CPU, C_GPU, N*sizeof(float), cudaMemcpyDeviceToHost);
 	cudaErrorCheck(__FILE__, __LINE__);
-	DotGPU = C_CPU[0]; // C_GPU was copied into C_CPU.
 	
 	// Making sure the GPU and CPU wiat until each other are at the same place.
 	cudaDeviceSynchronize();
 	cudaErrorCheck(__FILE__, __LINE__);
 
+	DotGPU = 0.0; // Do final reduction on the CPU
+	for(int i = 0; i < N; i+=BlockSize.x)
+	{
+		DotGPU += C_CPU[i];
+	}
+
 	gettimeofday(&end, NULL);
 	timeGPU = elaspedTime(start, end);
-	
+
 	// Checking to see if all went correctly.
 	if(check(DotCPU, DotGPU, Tolerance) == false)
 	{
@@ -246,12 +278,10 @@ int main()
 	}
 	
 	// Your done so cleanup your room.	
-	CleanUp();	
+	cleanUp();	
 	
 	// Making sure it flushes out anything in the print buffer.
 	printf("\n\n");
 	
 	return(0);
 }
-
-
