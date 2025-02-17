@@ -146,7 +146,7 @@ __global__ void dotProductGPU(float *a, float *b, float *c, int n)
 	{
 		if(fold%2 != 0)
 		{
-			if(threadIdx.x == 0 && (blockIdx.x*blockDim.x + fold - 1) < n)
+			if(threadIdx.x == 0 && (id + fold - 1) < n)
 			{
 				temp[0] += temp[fold - 1];
 			}
