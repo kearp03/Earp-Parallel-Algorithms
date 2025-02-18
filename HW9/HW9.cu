@@ -163,7 +163,7 @@ __global__ void dotProductGPU(float *a, float *b, float *c, int n)
 	// Putting the answer into the global memory.
 	if(threadIdx.x == 0)
 	{
-		c[blockIdx.x*blockDim.x] = temp[0];
+		c[id] = temp[0];
 	}
 }
 
