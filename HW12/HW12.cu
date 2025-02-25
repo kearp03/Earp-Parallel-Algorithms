@@ -50,6 +50,7 @@ void cudaErrorCheck(const char*, int);
 void display();
 void idle();
 void KeyPressed(unsigned char, int, int);
+void CloseWindow();
 __device__ float hit(float, float, float*, sphereStruct);
 __global__ void makeSphersBitMap(float*, sphereStruct*);
 void makeRandomSpheres();
@@ -81,9 +82,18 @@ void KeyPressed(unsigned char key, int x, int y)
 	if(key == 'q')
 	{
 		glutDestroyWindow(Window);
-		printf("\nw Good Bye\n");
-		exit(0);
 	}
+}
+
+void CloseWindow()
+{
+	// Free memory
+	free(PixelsCPU);
+	free(SpheresCPU);
+	cudaFree(PixelsGPU);
+	cudaFree(SpheresGPU);
+	printf("\nMemory Freed: Good Bye\n");
+	exit(0);
 }
 
 __device__ float hit(float pixelx, float pixely, float *dimingValue, sphereStruct sphere)
@@ -220,6 +230,7 @@ int main(int argc, char** argv)
 	Window = glutCreateWindow("Random Spheres");
 	glutKeyboardFunc(KeyPressed);
    	glutDisplayFunc(display);
+	atexit(CloseWindow);
    	glutMainLoop();
 }
 
