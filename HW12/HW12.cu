@@ -6,7 +6,7 @@
  This code creates a random set of spheres and uses ray tracing to create a picture of them to be 
  displayed on the screen. Go through the code and understand it. Then:
  1: The spheres you created on the CPU do not change so send them up to the GPU and put them into constant memory.
- 2: Use CUDA events to time you code.
+ 2: Use CUDA events to time your code.
 */
 
 // Include files
@@ -42,17 +42,17 @@ static int Window;
 unsigned int WindowWidth = WINDOWWIDTH;
 unsigned int WindowHeight = WINDOWHEIGHT;
 dim3 BlockSize, GridSize;
-float *PixelsCPU, *PixelsGPU; 
-sphereStruct *SpheresCPU, *SpheresGPU;
+float *PixelsCPU, *PixelsGPU;
+sphereStruct *SpheresCPU;
+__constant__ sphereStruct constSpheres[NUMSPHERES];
 
 // Function prototypes
 void cudaErrorCheck(const char*, int);
 void display();
-void idle();
 void KeyPressed(unsigned char, int, int);
 void CloseWindow();
 __device__ float hit(float, float, float*, sphereStruct);
-__global__ void makeSphersBitMap(float*, sphereStruct*);
+__global__ void makeSphersBitMap(float*);
 void makeRandomSpheres();
 void makeBitMap();
 void paintScreen();
@@ -62,7 +62,7 @@ void setup();
 // and what file and line it occured on.
 void cudaErrorCheck(const char *file, int line)
 {
-	cudaError_t  error;
+	cudaError_t error;
 	error = cudaGetLastError();
 
 	if(error != cudaSuccess)
@@ -91,7 +91,6 @@ void CloseWindow()
 	free(PixelsCPU);
 	free(SpheresCPU);
 	cudaFree(PixelsGPU);
-	cudaFree(SpheresGPU);
 	printf("\nMemory Freed: Good Bye\n");
 	exit(0);
 }
@@ -110,7 +109,7 @@ __device__ float hit(float pixelx, float pixely, float *dimingValue, sphereStruc
 	return (ZMIN- 1.0); //If the ray doesn't hit anything return a number behind the box.
 }
 
-__global__ void makeSphersBitMap(float *pixels, sphereStruct *sphereInfo)
+__global__ void makeSphersBitMap(float *pixels)
 {
 	float stepSizeX = (XMAX - XMIN)/((float)WINDOWWIDTH - 1);
 	float stepSizeY = (YMAX - YMIN)/((float)WINDOWHEIGHT - 1);
@@ -131,14 +130,14 @@ __global__ void makeSphersBitMap(float *pixels, sphereStruct *sphereInfo)
 	float maxHit = ZMIN -1.0f; // Initializing it to be out of the back of the box.
 	for(int i = 0; i < NUMSPHERES; i++)
 	{
-		hitValue = hit(pixelx, pixely, &dimingValue, sphereInfo[i]);
+		hitValue = hit(pixelx, pixely, &dimingValue, constSpheres[i]);
 		// do we hit any spheres? If so, how close are we to the center? (i.e. n)
 		if(maxHit < hitValue)
 		{
 			// Setting the RGB value of the sphere but also diming it as it gets close to the side of the sphere.
-			pixelr = sphereInfo[i].r * dimingValue; 	
-			pixelg = sphereInfo[i].g * dimingValue;	
-			pixelb = sphereInfo[i].b * dimingValue; 	
+			pixelr = constSpheres[i].r * dimingValue; 	
+			pixelg = constSpheres[i].g * dimingValue;	
+			pixelb = constSpheres[i].b * dimingValue; 	
 			maxHit = hitValue; // reset maxHit value to be the current closest sphere
 		}
 	}
@@ -167,16 +166,49 @@ void makeRandomSpheres()
 }	
 
 void makeBitMap()
-{	
-	cudaMemcpy(SpheresGPU, SpheresCPU, NUMSPHERES*sizeof(sphereStruct), cudaMemcpyHostToDevice);
+{
+	// Create CUDA events to time the code.
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaEventCreate(&stop);
+	cudaErrorCheck(__FILE__, __LINE__);
+
+	// Start the timer
+	cudaEventRecord(start, 0);
+	cudaErrorCheck(__FILE__, __LINE__);
+
+	// Copy the spheres to the GPU constant memory.
+	cudaMemcpyToSymbol(constSpheres, SpheresCPU, NUMSPHERES*sizeof(sphereStruct));
 	cudaErrorCheck(__FILE__, __LINE__);
 	
-	makeSphersBitMap<<<GridSize, BlockSize>>>(PixelsGPU, SpheresGPU);
+	// Call the kernel to make the bitmap.
+	makeSphersBitMap<<<GridSize, BlockSize>>>(PixelsGPU);
 	cudaErrorCheck(__FILE__, __LINE__);
 	
+	// Copy the bitmap back to the CPU.
 	cudaMemcpyAsync(PixelsCPU, PixelsGPU, WINDOWWIDTH*WINDOWHEIGHT*3*sizeof(float), cudaMemcpyDeviceToHost);
 	cudaErrorCheck(__FILE__, __LINE__);
 	
+	// Stop the timer
+	cudaEventRecord(stop, 0);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaEventSynchronize(stop);
+	cudaErrorCheck(__FILE__, __LINE__);
+	
+	// Calculate the time it took to make the bitmap.
+	float elapsedTime;
+	cudaEventElapsedTime(&elapsedTime, start, stop);
+	cudaErrorCheck(__FILE__, __LINE__);
+	printf("The time to make the bitmap was: %f microseconds\n", elapsedTime*1000);
+
+	// Destroy the events
+	cudaEventDestroy(start);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaEventDestroy(stop);
+	cudaErrorCheck(__FILE__, __LINE__);
+
+	// Display the bitmap
 	paintScreen();
 }
 
@@ -191,20 +223,18 @@ void setup()
 {
 	//We need the 3 because each pixel has a red, green, and blue value.
 	PixelsCPU = (float *)malloc(WINDOWWIDTH*WINDOWHEIGHT*3*sizeof(float));
-	cudaMalloc(&PixelsGPU,WINDOWWIDTH*WINDOWHEIGHT*3*sizeof(float));
+	cudaMalloc(&PixelsGPU, WINDOWWIDTH*WINDOWHEIGHT*3*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
 	
 	SpheresCPU= (sphereStruct*)malloc(NUMSPHERES*sizeof(sphereStruct));
-	cudaMalloc(&SpheresGPU, NUMSPHERES*sizeof(sphereStruct));
-	cudaErrorCheck(__FILE__, __LINE__);
-	
+
 	//Threads in a block
 	if(WINDOWWIDTH > 1024)
 	{
-	 	printf("The window width is too large to run with this program\n");
-	 	printf("The window width must be less than 1024.\n");
-	 	printf("Good Bye and have a nice day!\n");
-	 	exit(0);
+		printf("The window width is too large to run with this program\n");
+		printf("The window width must be less than 1024.\n");
+		printf("Good Bye and have a nice day!\n");
+		exit(0);
 	}
 	BlockSize.x = WINDOWWIDTH;
 	BlockSize.y = 1;
@@ -221,16 +251,16 @@ void setup()
 }
 
 int main(int argc, char** argv)
-{ 
+{
 	setup();
 	makeRandomSpheres();
-   	glutInit(&argc, argv);
+	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
-   	glutInitWindowSize(WINDOWWIDTH, WINDOWHEIGHT);
+	glutInitWindowSize(WINDOWWIDTH, WINDOWHEIGHT);
 	Window = glutCreateWindow("Random Spheres");
 	glutKeyboardFunc(KeyPressed);
-   	glutDisplayFunc(display);
+	glutDisplayFunc(display);
 	atexit(CloseWindow);
-   	glutMainLoop();
+	glutMainLoop();
 }
 
