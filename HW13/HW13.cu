@@ -34,7 +34,7 @@ dim3 GridSize; //This variable will hold the Dimensions of your grid
 void cudaErrorCheck(const char *, int);
 void SetUpCudaDevices();
 void AllocateMemory();
-void Innitialize();
+void Initialize();
 void CleanUp();
 void fillHistogramCPU();
 __global__ void fillHistogramGPU(float *, int *);
@@ -61,7 +61,7 @@ void SetUpCudaDevices()
 	cudaGetDeviceProperties(&prop, 0);
 	cudaErrorCheck(__FILE__, __LINE__);
 	
-	BlockSize.x = 222;
+	BlockSize.x = prop.multiProcessorCount*2; //Change the block size to be twice the number of multiprocessors.
 	if(prop.maxThreadsDim[0] < BlockSize.x)
 	{
 		printf("\n You are trying to create more threads (%d) than your GPU can suppport on a block (%d).\n Good Bye\n", BlockSize.x, prop.maxThreadsDim[0]);
@@ -101,7 +101,7 @@ void AllocateMemory()
 }
 
 //Loading random numbers.
-void Innitialize()
+void Initialize()
 {
 	time_t t;
 	srand((unsigned) time(&t));
@@ -158,7 +158,59 @@ void fillHistogramCPU()
 //This is the kernel. It is the function that will run on the GPU.
 __global__ void fillHistogramGPU(float *randomNumbers, int *hist)
 {
+	float breakPoint;
+	int k, done;
+	float stepSize = MAX_RANDOM_NUMBER/(float)NUMBER_OF_BINS;
+
+	__shared__ int histTemp[NUMBER_OF_BINS];
+
+	int id = threadIdx.x + blockIdx.x*blockDim.x;
 	
+	// Zero out the shared memory, for loop is for the case where the number of bins is greater than the block size.
+	for(int i = threadIdx.x; i < NUMBER_OF_BINS; i += blockDim.x)
+	{
+		histTemp[i] = 0;
+	}
+	
+	__syncthreads();
+	
+	// Fill the shared memory with the histogram values. Only access the global memory if the id is less than the number of random numbers.
+	if(id < NUMBER_OF_RANDOM_NUMBERS)
+	{
+		float randomNumber = randomNumbers[id];
+
+		breakPoint = stepSize;
+		k = 0;
+		done = 0;
+		while(done == 0)
+		{
+			if(randomNumber < breakPoint)
+			{
+				atomicAdd(&histTemp[k], 1);
+				done = 1;
+			}
+			
+			if(NUMBER_OF_BINS < k)
+			{
+				printf("\n k is too big\n");
+				return;
+			}
+			k++;
+			breakPoint += stepSize;
+		}
+	}
+
+	__syncthreads();
+
+	// Copy the shared memory to the global memory. For loop is for the case where the number of bins is greater than the block size.
+	for(int i = threadIdx.x; i < NUMBER_OF_BINS; i += blockDim.x)
+	{
+		atomicAdd(&hist[i], histTemp[i]);
+	}
+	// if(threadIdx.x < NUMBER_OF_BINS)
+	// {
+	// 	atomicAdd(&hist[threadIdx.x], histTemp[threadIdx.x]);
+	// }
 }
 
 int main()
@@ -181,7 +233,7 @@ int main()
 	AllocateMemory();
 
 	//Loading up values to be added.
-	Innitialize();
+	Initialize();
 	
 	gettimeofday(&start, NULL);
 	fillHistogramCPU();
@@ -203,11 +255,14 @@ int main()
 	printf("\nTime on GPU = %.15f milliseconds\n", (time/1000.0));
 	
 	//Check
+	int absoluteDifference = 0;
 	for(int i = 0; i < NUMBER_OF_BINS; i++)
 	{
-		printf("\n Deference in histogram bins %d is %d.", i, abs(HistogramCPUTemp[i] - HistogramCPU[i]));
+		printf("\n Difference in histogram bins %d is %d.", i, abs(HistogramCPUTemp[i] - HistogramCPU[i]));
+		absoluteDifference += abs(HistogramCPUTemp[i] - HistogramCPU[i]);
 	}
-	
+	printf("\n\n The absolute difference between the CPU and GPU histograms is %d.\n", absoluteDifference);
+
 	//You're done so cleanup your mess.
 	CleanUp();	
 	
