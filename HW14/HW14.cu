@@ -4,14 +4,13 @@
 
 /*
  What to do:
- Read chapter 10 in your book and file in the ???s in this code to understand how to setup and
+ Read chapter 10 in your book and fill in the ???s in this code to understand how to setup and
  test page-locked memory on the host.
 */
 
 // Include files
 #include <sys/time.h>
 #include <stdio.h>
-// #include "./MyCuda.h"
 
 // Defines
 #define SIZE 2000000 
@@ -45,7 +44,7 @@ void cudaErrorCheck(const char *file, int line)
 	}
 }
 
-//This will be the layout of the parallel space we will be using.
+//This sets up the CUDA events to time our code.
 void setUpCudaDevices()
 {
 	cudaEventCreate(&StartEvent);
@@ -54,7 +53,7 @@ void setUpCudaDevices()
 	cudaErrorCheck(__FILE__, __LINE__);
 }
 
-//Sets a side memory on the GPU and CPU for our use.
+//Sets aside memory on the GPU and CPU for our use.
 void allocateMemory()
 {					
 	//Allocate Device (GPU) Memory
@@ -175,7 +174,7 @@ int main()
 	printf("\n Time on GPU using page locked memory down = %3.1f milliseconds", timeEvent);
 	
 	printf("\n");
-	//You're done so cleanup your mess.
+	//You're done so clean up your mess.
 	cleanUp();	
 	
 	return(0);
