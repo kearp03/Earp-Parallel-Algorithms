@@ -192,7 +192,29 @@ int main()
 	for(int i = 0; i < ENTIRE_DATA_SET; i += DATA_CHUNKS*2)
 	{
 		//******************************************
-		
+		// Copy only a chunk of data to the GPU, interweaving the streams
+		// A arrays
+		cudaMemcpyAsync(A0_GPU, A_CPU+i, DATA_CHUNKS*sizeof(float), cudaMemcpyHostToDevice, Stream0);
+		cudaErrorCheck(__FILE__, __LINE__);
+		cudaMemcpyAsync(A1_GPU, A_CPU+i+DATA_CHUNKS, DATA_CHUNKS*sizeof(float), cudaMemcpyHostToDevice, Stream1);
+		cudaErrorCheck(__FILE__, __LINE__);
+		// B arrays
+		cudaMemcpyAsync(B0_GPU, B_CPU+i, DATA_CHUNKS*sizeof(float), cudaMemcpyHostToDevice, Stream0);
+		cudaErrorCheck(__FILE__, __LINE__);
+		cudaMemcpyAsync(B1_GPU, B_CPU+i+DATA_CHUNKS, DATA_CHUNKS*sizeof(float), cudaMemcpyHostToDevice, Stream1);
+		cudaErrorCheck(__FILE__, __LINE__);
+
+		// Call the kernel, interweaving the streams
+		trigAdditionGPU<<<GridSize, BlockSize, 0, Stream0>>>(A0_GPU, B0_GPU, C0_GPU, DATA_CHUNKS);
+		cudaErrorCheck(__FILE__, __LINE__);
+		trigAdditionGPU<<<GridSize, BlockSize, 0, Stream1>>>(A1_GPU, B1_GPU, C1_GPU, DATA_CHUNKS);
+		cudaErrorCheck(__FILE__, __LINE__);
+
+		// Copy the data back to the CPU, interweaving the streams
+		cudaMemcpyAsync(C_CPU+i, C0_GPU, DATA_CHUNKS*sizeof(float), cudaMemcpyDeviceToHost, Stream0);
+		cudaErrorCheck(__FILE__, __LINE__);
+		cudaMemcpyAsync(C_CPU+i+DATA_CHUNKS, C1_GPU, DATA_CHUNKS*sizeof(float), cudaMemcpyDeviceToHost, Stream1);
+		cudaErrorCheck(__FILE__, __LINE__);
 		//******************************************
 	}
 	
