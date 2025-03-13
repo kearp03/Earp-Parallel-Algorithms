@@ -33,6 +33,7 @@
 #define DRAW 100
 #define LENGTH_OF_BOX 6.0
 #define MAX_VELOCITY 5.0
+#define NUMBER_OF_SPHERES 100
 
 // Globals
 const float XMax = (LENGTH_OF_BOX/2.0);
@@ -41,8 +42,8 @@ const float ZMax = (LENGTH_OF_BOX/2.0);
 const float XMin = -(LENGTH_OF_BOX/2.0);
 const float YMin = -(LENGTH_OF_BOX/2.0);
 const float ZMin = -(LENGTH_OF_BOX/2.0);
-float px1, py1, pz1, vx1, vy1, vz1, fx1, fy1, fz1, mass1; 
-float px2, py2, pz2, vx2, vy2, vz2, fx2, fy2, fz2, mass2;
+float4 Position[NUMBER_OF_SPHERES], Velocity[NUMBER_OF_SPHERES], Force[NUMBER_OF_SPHERES], Colors[NUMBER_OF_SPHERES];
+float Mass[NUMBER_OF_SPHERES];
 
 // Function prototypes
 void set_initail_conditions();
@@ -60,38 +61,46 @@ void set_initail_conditions()
 { 
 	time_t t;
 	srand((unsigned) time(&t));
-	int yeahBuddy;
-	float dx, dy, dz, seperation;
 	
-	px1 = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
-	py1 = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
-	pz1 = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
-	
-	yeahBuddy = 0;
-	while(yeahBuddy == 0)
+	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
 	{
-		px2 = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
-		py2 = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
-		pz2 = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
+		int yeahBuddy = 0;
+		float dx, dy, dz, seperation;
+		while(yeahBuddy == 0)
+		{
+			Position[i].x = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
+			Position[i].y = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
+			Position[i].z = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
+			
+			yeahBuddy = 1;
+			for(int j = 0; j < i; j++)
+			{
+				dx = Position[i].x - Position[j].x;
+				dy = Position[i].y - Position[j].y;
+				dz = Position[i].z - Position[j].z;
+				seperation = sqrt(dx*dx + dy*dy + dz*dz);
+				if(seperation < DIAMETER) 
+				{
+					yeahBuddy = 0;
+					break;
+				}
+			}
+		}
 		
-		dx = px2 - px2;
-		dy = py2 - py1;
-		dz = pz2 - pz1;
-		seperation = sqrt(dx*dx + dy*dy + dz*dz);
-		yeahBuddy = 1;
-		if(seperation < DIAMETER) yeahBuddy = 0;
+		Velocity[i].x = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
+		Velocity[i].y = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
+		Velocity[i].z = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
+		
+		Colors[i].x = (float)rand()/RAND_MAX;
+		Colors[i].y = (float)rand()/RAND_MAX;
+		Colors[i].z = (float)rand()/RAND_MAX;
+
+		Force[i].x = 0.0;
+		Force[i].y = 0.0;
+		Force[i].z = 0.0;
+
+		Mass[i] = 1.0;
 	}
-	
-	vx1 = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
-	vy1 = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
-	vz1 = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
-	
-	vx2 = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
-	vy2 = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
-	vz2 = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
-	
-	mass1 = 1.0;
-	mass2 = 1.0;
 }
 
 void Drawwirebox()
@@ -138,17 +147,14 @@ void draw_picture()
 	
 	Drawwirebox();
 	
-	glColor3d(1.0,0.5,1.0);
-	glPushMatrix();
-	glTranslatef(px1, py1, pz1);
-	glutSolidSphere(radius,20,20);
-	glPopMatrix();
-	
-	glColor3d(0.0,0.5,0.0);
-	glPushMatrix();
-	glTranslatef(px2, py2, pz2);
-	glutSolidSphere(radius,20,20);
-	glPopMatrix();
+	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
+	{
+		glColor3d(Colors[i].x,Colors[i].y,Colors[i].z);
+		glPushMatrix();
+		glTranslatef(Position[i].x, Position[i].y, Position[i].z);
+		glutSolidSphere(radius,20,20);
+		glPopMatrix();
+	}
 	
 	glutSwapBuffers();
 }
@@ -157,141 +163,116 @@ void keep_in_box()
 {
 	float halfBoxLength = (LENGTH_OF_BOX - DIAMETER)/2.0;
 	
-	if(px1 > halfBoxLength)
+	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
 	{
-		px1 = 2.0*halfBoxLength - px1;
-		vx1 = - vx1;
-	}
-	else if(px1 < -halfBoxLength)
-	{
-		px1 = -2.0*halfBoxLength - px1;
-		vx1 = - vx1;
-	}
-	
-	if(py1 > halfBoxLength)
-	{
-		py1 = 2.0*halfBoxLength - py1;
-		vy1 = - vy1;
-	}
-	else if(py1 < -halfBoxLength)
-	{
-		py1 = -2.0*halfBoxLength - py1;
-		vy1 = - vy1;
-	}
-			
-	if(pz1 > halfBoxLength)
-	{
-		pz1 = 2.0*halfBoxLength - pz1;
-		vz1 = - vz1;
-	}
-	else if(pz1 < -halfBoxLength)
-	{
-		pz1 = -2.0*halfBoxLength - pz1;
-		vz1 = - vz1;
-	}
-	
-	if(px2 > halfBoxLength)
-	{
-		px2 = 2.0*halfBoxLength - px2;
-		vx2 = - vx2;
-	}
-	else if(px2 < -halfBoxLength)
-	{
-		px2 = -2.0*halfBoxLength - px2;
-		vx2 = - vx2;
-	}
-	
-	if(py2 > halfBoxLength)
-	{
-		py2 = 2.0*halfBoxLength - py2;
-		vy2 = - vy2;
-	}
-	else if(py2 < -halfBoxLength)
-	{
-		py2 = -2.0*halfBoxLength - py2;
-		vy2 = - vy2;
-	}
-			
-	if(pz2 > halfBoxLength)
-	{
-		pz2 = 2.0*halfBoxLength - pz2;
-		vz2 = - vz2;
-	}
-	else if(pz2 < -halfBoxLength)
-	{
-		pz2 = -2.0*halfBoxLength - pz2;
-		vz2 = - vz2;
+		if(Position[i].x > halfBoxLength)
+		{
+			Position[i].x = 2.0*halfBoxLength - Position[i].x;
+			Velocity[i].x = - Velocity[i].x;
+		}
+		else if(Position[i].x < -halfBoxLength)
+		{
+			Position[i].x = -2.0*halfBoxLength - Position[i].x;
+			Velocity[i].x = - Velocity[i].x;
+		}
+		
+		if(Position[i].y > halfBoxLength)
+		{
+			Position[i].y = 2.0*halfBoxLength - Position[i].y;
+			Velocity[i].y = - Velocity[i].y;
+		}
+		else if(Position[i].y < -halfBoxLength)
+		{
+			Position[i].y = -2.0*halfBoxLength - Position[i].y;
+			Velocity[i].y = - Velocity[i].y;
+		}
+				
+		if(Position[i].z > halfBoxLength)
+		{
+			Position[i].z = 2.0*halfBoxLength - Position[i].z;
+			Velocity[i].z = - Velocity[i].z;
+		}
+		else if(Position[i].z < -halfBoxLength)
+		{
+			Position[i].z = -2.0*halfBoxLength - Position[i].z;
+			Velocity[i].z = - Velocity[i].z;
+		}
 	}
 }
 
 void get_forces()
 {
-	float dx,dy,dz,r,r2,dvx,dvy,dvz,forceMag,inout;
+	float4 d, dv;
+	float r, r2, forceMag, inout;
 	
-	dx = px2 - px1;
-	dy = py2 - py1;
-	dz = pz2 - pz1;
-				
-	r2 = dx*dx + dy*dy + dz*dz;
-	r = sqrt(r2);
-
-	forceMag =  mass1*mass2*GRAVITY/r2;
-			
-	if (r < DIAMETER)
+	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
 	{
-		dvx = vx2 - vx1;
-		dvy = vy2 - vy1;
-		dvz = vz2 - vz1;
-		inout = dx*dvx + dy*dvy + dz*dvz;
-		if(inout <= 0.0)
-		{
-			forceMag +=  SPHERE_PUSH_BACK_STRENGTH*(r - DIAMETER);
-		}
-		else
-		{
-			forceMag +=  PUSH_BACK_REDUCTION*SPHERE_PUSH_BACK_STRENGTH*(r - DIAMETER);
-		}
+		Force[i].x = 0.0;
+		Force[i].y = 0.0;
+		Force[i].z = 0.0;
 	}
 
-	fx1 = forceMag*dx/r;
-	fy1 = forceMag*dy/r;
-	fz1 = forceMag*dz/r;
-	fx2 = -forceMag*dx/r;
-	fy2 = -forceMag*dy/r;
-	fz2 = -forceMag*dz/r;
+	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
+	{
+		for(int j = i+1; j < NUMBER_OF_SPHERES; j++)
+		{
+			d.x = Position[j].x - Position[i].x;
+			d.y = Position[j].y - Position[i].y;
+			d.z = Position[j].z - Position[i].z;
+
+			r2 = d.x*d.x + d.y*d.y + d.z*d.z;
+			r = sqrt(r2);
+			
+			forceMag =  Mass[i]*Mass[j]*GRAVITY/r2;
+
+			if (r < DIAMETER)
+			{
+				dv.x = Velocity[j].x - Velocity[i].x;
+				dv.y = Velocity[j].y - Velocity[i].y;
+				dv.z = Velocity[j].z - Velocity[i].z;
+				inout = d.x*dv.x + d.y*dv.y + d.z*dv.z;
+				if(inout <= 0.0)
+				{
+					forceMag +=  SPHERE_PUSH_BACK_STRENGTH*(r - DIAMETER);
+				}
+				else
+				{
+					forceMag +=  PUSH_BACK_REDUCTION*SPHERE_PUSH_BACK_STRENGTH*(r - DIAMETER);
+				}
+			}
+
+			Force[i].x += forceMag*d.x/r;
+			Force[i].y += forceMag*d.y/r;
+			Force[i].z += forceMag*d.z/r;
+			Force[j].x -= forceMag*d.x/r;
+			Force[j].y -= forceMag*d.y/r;
+			Force[j].z -= forceMag*d.z/r;
+		}
+	}
 }
 
 void move_bodies(float time)
 {
-	if(time == 0.0)
+	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
 	{
-		vx1 += 0.5*DT*(fx1 - DAMP*vx1)/mass1;
-		vy1 += 0.5*DT*(fy1 - DAMP*vy1)/mass1;
-		vz1 += 0.5*DT*(fz1 - DAMP*vz1)/mass1;
-		
-		vx2 += 0.5*DT*(fx2 - DAMP*vx2)/mass2;
-		vy2 += 0.5*DT*(fy2 - DAMP*vy2)/mass2;
-		vz2 += 0.5*DT*(fz2 - DAMP*vz2)/mass2;
-	}
-	else
-	{
-		vx1 += DT*(fx1 - DAMP*vx1)/mass1;
-		vy1 += DT*(fy1 - DAMP*vy1)/mass1;
-		vz1 += DT*(fz1 - DAMP*vz1)/mass1;
-		
-		vx2 += DT*(fx2 - DAMP*vx2)/mass2;
-		vy2 += DT*(fy2 - DAMP*vy2)/mass2;
-		vz2 += DT*(fz2 - DAMP*vz2)/mass2;
+		if(time == 0.0)
+		{
+			Velocity[i].x += 0.5*DT*(Force[i].x - DAMP*Velocity[i].x)/Mass[i];
+			Velocity[i].y += 0.5*DT*(Force[i].y - DAMP*Velocity[i].y)/Mass[i];
+			Velocity[i].z += 0.5*DT*(Force[i].z - DAMP*Velocity[i].z)/Mass[i];
+		}
+		else
+		{
+			Velocity[i].x += DT*(Force[i].x - DAMP*Velocity[i].x)/Mass[i];
+			Velocity[i].y += DT*(Force[i].y - DAMP*Velocity[i].y)/Mass[i];
+			Velocity[i].z += DT*(Force[i].z - DAMP*Velocity[i].z)/Mass[i];
+		}
+
+		Position[i].x += DT*Velocity[i].x;
+		Position[i].y += DT*Velocity[i].y;
+		Position[i].z += DT*Velocity[i].z;
 	}
 
-	px1 += DT*vx1;
-	py1 += DT*vy1;
-	pz1 += DT*vz1;
-	
-	px2 += DT*vx2;
-	py2 += DT*vy2;
-	pz2 += DT*vz2;
-	
 	keep_in_box();
 }
 
@@ -353,7 +334,7 @@ int main(int argc, char** argv)
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGB);
 	glutInitWindowSize(XWindowSize,YWindowSize);
 	glutInitWindowPosition(0,0);
-	glutCreateWindow("2 Body 3D");
+	glutCreateWindow("N Body 3D");
 	GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
 	GLfloat light_ambient[]  = {0.0, 0.0, 0.0, 1.0};
 	GLfloat light_diffuse[]  = {1.0, 1.0, 1.0, 1.0};
@@ -380,5 +361,3 @@ int main(int argc, char** argv)
 	glutMainLoop();
 	return 0;
 }
-
-
