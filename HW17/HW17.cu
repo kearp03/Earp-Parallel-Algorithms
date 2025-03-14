@@ -33,7 +33,7 @@
 #define DRAW 100
 #define LENGTH_OF_BOX 6.0
 #define MAX_VELOCITY 5.0
-#define NUMBER_OF_SPHERES 100000
+#define NUMBER_OF_SPHERES 50
 
 // Globals
 const float XMax = (LENGTH_OF_BOX/2.0);
