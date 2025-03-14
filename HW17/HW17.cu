@@ -33,7 +33,7 @@
 #define DRAW 100
 #define LENGTH_OF_BOX 6.0
 #define MAX_VELOCITY 5.0
-#define NUMBER_OF_SPHERES 100
+#define NUMBER_OF_SPHERES 100000
 
 // Globals
 const float XMax = (LENGTH_OF_BOX/2.0);
@@ -62,15 +62,18 @@ void set_initail_conditions()
 	time_t t;
 	srand((unsigned) time(&t));
 	
+	int yeahBuddy, placementAttempts, maxAttempts = 1000;
+	float dx, dy, dz, seperation;
+
 	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
 	{
-		int yeahBuddy = 0;
-		float dx, dy, dz, seperation;
+		yeahBuddy = 0;
+		placementAttempts = 0;
 		while(yeahBuddy == 0)
 		{
-			Position[i].x = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
-			Position[i].y = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
-			Position[i].z = (LENGTH_OF_BOX - DIAMETER)*rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
+			Position[i].x = (LENGTH_OF_BOX - DIAMETER)*(float)rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
+			Position[i].y = (LENGTH_OF_BOX - DIAMETER)*(float)rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
+			Position[i].z = (LENGTH_OF_BOX - DIAMETER)*(float)rand()/RAND_MAX - (LENGTH_OF_BOX - DIAMETER)/2.0;
 			
 			yeahBuddy = 1;
 			for(int j = 0; j < i; j++)
@@ -81,6 +84,12 @@ void set_initail_conditions()
 				seperation = sqrt(dx*dx + dy*dy + dz*dz);
 				if(seperation < DIAMETER) 
 				{
+					placementAttempts++;
+					if(placementAttempts > maxAttempts)
+					{
+						printf("%d spheres could not fit in the box. Failed at sphere indexed %d, try again\n", NUMBER_OF_SPHERES, i);
+						exit(0);
+					}
 					yeahBuddy = 0;
 					break;
 				}
