@@ -36,12 +36,18 @@
 // Globals
 int N, DrawFlag;
 float3 *P, *V, *F;
-float *M; 
+float3 *P_GPU, *V_GPU, *F_GPU;
+float *M, *M_GPU; 
 float GlobeRadius, Diameter, Radius;
 float Damp;
+dim3 BlockSize, GridSize;
 
 // Function prototypes
-void KeyPressed(unsigned char, int, int);
+void cudaErrorCheck(const char*, int);
+void setupCUDA();
+__global__ void getForcesCUDA(float3*, float3*, float3*, float*, int);
+__global__ void updatePositionCUDA(float3*, float3*, float3*, float*, int, float, float, float);
+void keyPressed(unsigned char, int, int);
 long elaspedTime(struct timeval, struct timeval);
 void drawPicture();
 void timer();
@@ -49,7 +55,99 @@ void setup();
 void nBody();
 int main(int, char**);
 
-void KeyPressed(unsigned char key, int x, int y)
+// This check to see if an error happened in your CUDA code. It tell you what it thinks went wrong,
+// and what file and line it occured on.
+void cudaErrorCheck(const char *file, int line)
+{
+	cudaError_t  error;
+	error = cudaGetLastError();
+
+	if(error != cudaSuccess)
+	{
+		printf("\n CUDA ERROR: message = %s, File = %s, Line = %d\n", cudaGetErrorString(error), file, line);
+		exit(0);
+	}
+}
+
+void setupCUDA()
+{
+	// This is where we set up the parallel structure for the GPU.
+	// We assume that the number of bodies is less than 1024 so we can run this on one block.
+	BlockSize.x = N;
+	BlockSize.y = 1;
+	BlockSize.z = 1;
+
+	GridSize.x = 1;
+	GridSize.y = 1;
+	GridSize.z = 1;
+
+	if(N > 1024)
+	{
+		printf("\n The number of bodies is greater than 1024. Exiting.\n");
+		exit(0);
+	}
+	// Allocate memory on the GPU.
+	cudaMalloc(&P_GPU, N*sizeof(float3));
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaMalloc(&V_GPU, N*sizeof(float3));
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaMalloc(&F_GPU, N*sizeof(float3));
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaMalloc(&M_GPU, N*sizeof(float));
+	cudaErrorCheck(__FILE__, __LINE__);
+}
+
+__global__ void getForcesCUDA(float3* p, float3* v, float3* f, float* m, int n)
+{
+	int id = threadIdx.x;
+	float force_mag;
+	float dx, dy, dz, d, d2;
+
+	f[id].x = 0.0;
+	f[id].y = 0.0;
+	f[id].z = 0.0;
+
+	for(int i = 0; i < n; i++)
+	{
+		if(i != id)
+		{
+			dx = p[i].x - p[id].x;
+			dy = p[i].y - p[id].y;
+			dz = p[i].z - p[id].z;
+			d2 = dx*dx + dy*dy + dz*dz;
+			d = sqrt(d2);
+
+			force_mag = (G*m[id]*m[i])/(d2) - (H*m[id]*m[i])/(d2*d2);
+			f[id].x += force_mag*dx/d;
+			f[id].y += force_mag*dy/d;
+			f[id].z += force_mag*dz/d;
+		}
+	}
+}
+
+__global__ void updatePositionCUDA(float3* p, float3* v, float3* f, float* m, int n, float dt, float time, float damp)
+{
+	int id = threadIdx.x;
+
+	if(time == 0.0)
+	{
+		v[id].x += (f[id].x/m[id])*0.5*dt;
+		v[id].y += (f[id].y/m[id])*0.5*dt;
+		v[id].z += (f[id].z/m[id])*0.5*dt;
+	}
+	else
+	{
+		v[id].x += ((f[id].x-damp*v[id].x)/m[id])*dt;
+		v[id].y += ((f[id].y-damp*v[id].y)/m[id])*dt;
+		v[id].z += ((f[id].z-damp*v[id].z)/m[id])*dt;
+	}
+
+	p[id].x += v[id].x*dt;
+	p[id].y += v[id].y*dt;
+	p[id].z += v[id].z*dt;
+}
+
+void keyPressed(unsigned char key, int x, int y)
 {
 	if(key == 's')
 	{
@@ -58,6 +156,20 @@ void KeyPressed(unsigned char key, int x, int y)
 	
 	if(key == 'q')
 	{
+		// Freeing all the memory we allocated.
+		free(M);
+		free(P);
+		free(V);
+		free(F);
+		cudaFree(P_GPU);
+		cudaErrorCheck(__FILE__, __LINE__);
+		cudaFree(V_GPU);
+		cudaErrorCheck(__FILE__, __LINE__);
+		cudaFree(F_GPU);
+		cudaErrorCheck(__FILE__, __LINE__);
+		cudaFree(M_GPU);
+		cudaErrorCheck(__FILE__, __LINE__);
+		
 		exit(0);
 	}
 }
@@ -174,83 +286,68 @@ void setup()
 		
 		M[i] = 1.0;
 	}
+
+	setupCUDA();
+
 	printf("\n To start timing type s.\n");
 }
 
 void nBody()
 {
-	float force_mag; 
-	float dx,dy,dz,d, d2;
+	// float force_mag; 
+	// float dx,dy,dz,d, d2;
 	
 	int    drawCount = 0; 
 	float  time = 0.0;
 	float dt = 0.0001;
 
+	// Copying the data to the GPU.
+	cudaMemcpyAsync(P_GPU, P, N*sizeof(float3), cudaMemcpyHostToDevice);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaMemcpyAsync(V_GPU, V, N*sizeof(float3), cudaMemcpyHostToDevice);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaMemcpyAsync(F_GPU, F, N*sizeof(float3), cudaMemcpyHostToDevice);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaMemcpyAsync(M_GPU, M, N*sizeof(float), cudaMemcpyHostToDevice);
+	cudaErrorCheck(__FILE__, __LINE__);
+
 	while(time < RUN_TIME)
 	{
-		for(int i=0; i<N; i++)
-		{
-			F[i].x = 0.0;
-			F[i].y = 0.0;
-			F[i].z = 0.0;
-		}
-		
-		for(int i=0; i<N; i++)
-		{
-			for(int j=i+1; j<N; j++)
-			{
-				dx = P[j].x-P[i].x;
-				dy = P[j].y-P[i].y;
-				dz = P[j].z-P[i].z;
-				d2 = dx*dx + dy*dy + dz*dz;
-				d  = sqrt(d2);
-				
-				force_mag  = (G*M[i]*M[j])/(d2) - (H*M[i]*M[j])/(d2*d2);
-				F[i].x += force_mag*dx/d;
-				F[j].x -= force_mag*dx/d;
-				F[i].y += force_mag*dy/d;
-				F[j].y -= force_mag*dy/d;
-				F[i].z += force_mag*dz/d;
-				F[j].z -= force_mag*dz/d;
-			}
-		}
+		// Calculating the forces for each body.
+		getForcesCUDA<<<GridSize, BlockSize>>>(P_GPU, V_GPU, F_GPU, M_GPU, N);
+		cudaErrorCheck(__FILE__, __LINE__);
 
-		for(int i=0; i<N; i++)
-		{
-			if(time == 0.0)
-			{
-				V[i].x += (F[i].x/M[i])*0.5*dt;
-				V[i].y += (F[i].y/M[i])*0.5*dt;
-				V[i].z += (F[i].z/M[i])*0.5*dt;
-			}
-			else
-			{
-				V[i].x += ((F[i].x-Damp*V[i].x)/M[i])*dt;
-				V[i].y += ((F[i].y-Damp*V[i].y)/M[i])*dt;
-				V[i].z += ((F[i].z-Damp*V[i].z)/M[i])*dt;
-			}
+		//cudaDeviceSynchronize();
 
-			P[i].x += V[i].x*dt;
-			P[i].y += V[i].y*dt;
-			P[i].z += V[i].z*dt;
-		}
+		// Updating the position of each body.
+		updatePositionCUDA<<<GridSize, BlockSize>>>(P_GPU, V_GPU, F_GPU, M_GPU, N, dt, time, Damp);
+		cudaErrorCheck(__FILE__, __LINE__);
 
 		if(drawCount == DRAW_RATE) 
 		{
-			if(DrawFlag) drawPicture();
+			if(DrawFlag)
+			{
+				// Copying the data back to the CPU.
+				cudaMemcpy(P, P_GPU, N*sizeof(float3), cudaMemcpyDeviceToHost);
+				cudaErrorCheck(__FILE__, __LINE__);
+				drawPicture();
+			}
 			drawCount = 0;
 		}
 		
 		time += dt;
 		drawCount++;
 	}
+	// Copying the data back to the CPU one last time
+	cudaMemcpy(P, P_GPU, N*sizeof(float3), cudaMemcpyDeviceToHost);
+	cudaErrorCheck(__FILE__, __LINE__);
 }
 
 int main(int argc, char** argv)
 {
 	if( argc < 3)
 	{
-		printf("\n You need to intire the number of bodies (an int)"); 
+		printf("\n You need to enter the number of bodies (an int)"); 
 		printf("\n and if you want to draw the bodies as they move (1 draw, 0 don't draw),");
 		printf("\n on the comand line.\n"); 
 		exit(0);
@@ -292,7 +389,8 @@ int main(int argc, char** argv)
 	glEnable(GL_LIGHT0);
 	glEnable(GL_COLOR_MATERIAL);
 	glEnable(GL_DEPTH_TEST);
-	glutKeyboardFunc(KeyPressed);
+	glutKeyboardFunc(keyPressed);
+	glutDisplayFunc(drawPicture);
 	
 	float3 eye = {0.0f, 0.0f, 2.0f*GlobeRadius};
 	float near = 0.2;
@@ -308,8 +406,3 @@ int main(int argc, char** argv)
 	glutMainLoop();
 	return 0;
 }
-
-
-
-
-
