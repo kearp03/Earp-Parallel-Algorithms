@@ -41,7 +41,7 @@ float GlobeRadius, Diameter, Radius;
 float Damp;
 
 // Function prototypes
-void KeyPressed(unsigned char, int, int);
+void keyPressed(unsigned char, int, int);
 long elaspedTime(struct timeval, struct timeval);
 void drawPicture();
 void timer();
@@ -49,7 +49,7 @@ void setup();
 void nBody();
 int main(int, char**);
 
-void KeyPressed(unsigned char key, int x, int y)
+void keyPressed(unsigned char key, int x, int y)
 {
 	if(key == 's')
 	{
@@ -250,7 +250,7 @@ int main(int argc, char** argv)
 {
 	if( argc < 3)
 	{
-		printf("\n You need to intire the number of bodies (an int)"); 
+		printf("\n You need to enter the number of bodies (an int)"); 
 		printf("\n and if you want to draw the bodies as they move (1 draw, 0 don't draw),");
 		printf("\n on the comand line.\n"); 
 		exit(0);
@@ -292,7 +292,8 @@ int main(int argc, char** argv)
 	glEnable(GL_LIGHT0);
 	glEnable(GL_COLOR_MATERIAL);
 	glEnable(GL_DEPTH_TEST);
-	glutKeyboardFunc(KeyPressed);
+	glutKeyboardFunc(keyPressed);
+	glutDisplayFunc(drawPicture);
 	
 	float3 eye = {0.0f, 0.0f, 2.0f*GlobeRadius};
 	float near = 0.2;
@@ -308,8 +309,3 @@ int main(int argc, char** argv)
 	glutMainLoop();
 	return 0;
 }
-
-
-
-
-
