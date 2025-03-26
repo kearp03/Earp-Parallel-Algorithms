@@ -99,52 +99,71 @@ void setupCUDA()
 
 __global__ void getForcesCUDA(float3* p, float3* v, float3* f, float* m, int n)
 {
-	int id = threadIdx.x;
-	float force_mag;
-	float dx, dy, dz, d, d2;
-
-	f[id].x = 0.0;
-	f[id].y = 0.0;
-	f[id].z = 0.0;
-
-	for(int i = 0; i < n; i++)
+	// This is the kernel that will calculate the forces on each body.
+	// Calculate the index of the body we are working on.
+	int id = threadIdx.x + blockIdx.x*blockDim.x;
+	// Make sure the index is less than the number of bodies
+	if(id < n)
 	{
-		if(i != id)
-		{
-			dx = p[i].x - p[id].x;
-			dy = p[i].y - p[id].y;
-			dz = p[i].z - p[id].z;
-			d2 = dx*dx + dy*dy + dz*dz;
-			d = sqrt(d2);
+		// This is the force magnitude and the distance between the bodies.
+		float force_mag;
+		float dx, dy, dz, d, d2;
 
-			force_mag = (G*m[id]*m[i])/(d2) - (H*m[id]*m[i])/(d2*d2);
-			f[id].x += force_mag*dx/d;
-			f[id].y += force_mag*dy/d;
-			f[id].z += force_mag*dz/d;
+		// Initialize the force on the body to zero.
+		f[id].x = 0.0;
+		f[id].y = 0.0;
+		f[id].z = 0.0;
+
+		// Loop through all the other bodies and calculate the force on the body we are working on.
+		for(int i = 0; i < n; i++)
+		{
+			// Make sure we are not calculating the force on the body we are working on.
+			if(i != id)
+			{
+				// Calculate the distance between the two bodies.
+				dx = p[i].x - p[id].x;
+				dy = p[i].y - p[id].y;
+				dz = p[i].z - p[id].z;
+				d2 = dx*dx + dy*dy + dz*dz;
+				d = sqrt(d2);
+
+				// Calculate the force magnitude.
+				force_mag = (G*m[id]*m[i])/(d2) - (H*m[id]*m[i])/(d2*d2);
+				// Add the force to the body we are working on.
+				f[id].x += force_mag*dx/d;
+				f[id].y += force_mag*dy/d;
+				f[id].z += force_mag*dz/d;
+			}
 		}
 	}
 }
 
 __global__ void updatePositionCUDA(float3* p, float3* v, float3* f, float* m, int n, float dt, float time, float damp)
 {
-	int id = threadIdx.x;
-
-	if(time == 0.0)
+	// This is the kernel that will update the position of each body.
+	// Calculate the index of the body we are working on.
+	int id = threadIdx.x + blockIdx.x*blockDim.x;
+	// Make sure the index is less than the number of bodies.
+	if(id < n)
 	{
-		v[id].x += (f[id].x/m[id])*0.5*dt;
-		v[id].y += (f[id].y/m[id])*0.5*dt;
-		v[id].z += (f[id].z/m[id])*0.5*dt;
-	}
-	else
-	{
-		v[id].x += ((f[id].x-damp*v[id].x)/m[id])*dt;
-		v[id].y += ((f[id].y-damp*v[id].y)/m[id])*dt;
-		v[id].z += ((f[id].z-damp*v[id].z)/m[id])*dt;
-	}
+		// Update the velocity and position of the body.
+		if(time == 0.0)
+		{
+			v[id].x += (f[id].x/m[id])*0.5*dt;
+			v[id].y += (f[id].y/m[id])*0.5*dt;
+			v[id].z += (f[id].z/m[id])*0.5*dt;
+		}
+		else
+		{
+			v[id].x += ((f[id].x-damp*v[id].x)/m[id])*dt;
+			v[id].y += ((f[id].y-damp*v[id].y)/m[id])*dt;
+			v[id].z += ((f[id].z-damp*v[id].z)/m[id])*dt;
+		}
 
-	p[id].x += v[id].x*dt;
-	p[id].y += v[id].y*dt;
-	p[id].z += v[id].z*dt;
+		p[id].x += v[id].x*dt;
+		p[id].y += v[id].y*dt;
+		p[id].z += v[id].z*dt;
+	}
 }
 
 void keyPressed(unsigned char key, int x, int y)
@@ -317,8 +336,6 @@ void nBody()
 		getForcesCUDA<<<GridSize, BlockSize>>>(P_GPU, V_GPU, F_GPU, M_GPU, N);
 		cudaErrorCheck(__FILE__, __LINE__);
 
-		//cudaDeviceSynchronize();
-
 		// Updating the position of each body.
 		updatePositionCUDA<<<GridSize, BlockSize>>>(P_GPU, V_GPU, F_GPU, M_GPU, N, dt, time, Damp);
 		cudaErrorCheck(__FILE__, __LINE__);
@@ -328,6 +345,7 @@ void nBody()
 			if(DrawFlag)
 			{
 				// Copying the data back to the CPU.
+				// cudaMemcpy acts as a synchronization point.
 				cudaMemcpy(P, P_GPU, N*sizeof(float3), cudaMemcpyDeviceToHost);
 				cudaErrorCheck(__FILE__, __LINE__);
 				drawPicture();
@@ -338,7 +356,8 @@ void nBody()
 		time += dt;
 		drawCount++;
 	}
-	// Copying the data back to the CPU one last time
+	// Copying the data back to the CPU one last time.
+	// cudaMemcpy acts as a synchronization point.
 	cudaMemcpy(P, P_GPU, N*sizeof(float3), cudaMemcpyDeviceToHost);
 	cudaErrorCheck(__FILE__, __LINE__);
 }
