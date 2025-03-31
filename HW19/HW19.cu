@@ -124,11 +124,11 @@ void timer()
 	
 	drawPicture();
 	gettimeofday(&start, NULL);
-    		nBody();
-    		cudaDeviceSynchronize();
+    	nBody();
+    	cudaDeviceSynchronize();
 		cudaErrorCheck(__FILE__, __LINE__);
-    	gettimeofday(&end, NULL);
-    	drawPicture();
+	gettimeofday(&end, NULL);
+	drawPicture();
     	
 	computeTime = elaspedTime(start, end);
 	printf("\n The compute time was %ld microseconds.\n\n", computeTime);
@@ -136,11 +136,11 @@ void timer()
 
 void setup()
 {
-    	float randomAngle1, randomAngle2, randomRadius;
-    	float d, dx, dy, dz;
-    	int test;
+    float randomAngle1, randomAngle2, randomRadius;
+	float d, dx, dy, dz;
+    int test;
     	
-    	BlockSize.x = N;
+    BlockSize.x = N;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
@@ -148,14 +148,14 @@ void setup()
 	GridSize.y = 1;
 	GridSize.z = 1;
     	
-    	Damp = 0.5;
+    Damp = 0.5;
     	
-    	M = (float*)malloc(N*sizeof(float));
-    	P = (float3*)malloc(N*sizeof(float3));
-    	V = (float3*)malloc(N*sizeof(float3));
-    	F = (float3*)malloc(N*sizeof(float3));
-    	
-    	cudaMalloc(&MGPU,N*sizeof(float));
+    M = (float*)malloc(N*sizeof(float));
+    P = (float3*)malloc(N*sizeof(float3));
+    V = (float3*)malloc(N*sizeof(float3));
+    F = (float3*)malloc(N*sizeof(float3));
+    
+    cudaMalloc(&MGPU,N*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMalloc(&PGPU,N*sizeof(float3));
 	cudaErrorCheck(__FILE__, __LINE__);
