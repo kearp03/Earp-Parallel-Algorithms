@@ -1,0 +1,322 @@
+Testing n=100
+  Run 1:
+
+ The compute time was 360841 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 344073 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 344093 microseconds.
+
+  ----------
+========================================
+Testing n=200
+  Run 1:
+
+ The compute time was 614046 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 612359 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 614492 microseconds.
+
+  ----------
+========================================
+Testing n=300
+  Run 1:
+
+ The compute time was 929507 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 929907 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 928993 microseconds.
+
+  ----------
+========================================
+Testing n=400
+  Run 1:
+
+ The compute time was 1320944 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 1322557 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 1320045 microseconds.
+
+  ----------
+========================================
+Testing n=500
+  Run 1:
+
+ The compute time was 1857583 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 1858307 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 1857127 microseconds.
+
+  ----------
+========================================
+Testing n=600
+  Run 1:
+
+ The compute time was 2261148 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 2283928 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 2270543 microseconds.
+
+  ----------
+========================================
+Testing n=700
+  Run 1:
+
+ The compute time was 2802197 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 2780834 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 2786676 microseconds.
+
+  ----------
+========================================
+Testing n=800
+  Run 1:
+
+ The compute time was 3320745 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 3273680 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 3310046 microseconds.
+
+  ----------
+========================================
+Testing n=900
+  Run 1:
+
+ The compute time was 3798874 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 3796627 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 3802256 microseconds.
+
+  ----------
+========================================
+Testing n=1000
+  Run 1:
+
+ The compute time was 4322343 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 4364668 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 4490920 microseconds.
+
+  ----------
+========================================
+Testing n=2000
+  Run 1:
+
+ The compute time was 9857282 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 9389803 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 9455140 microseconds.
+
+  ----------
+========================================
+Testing n=3000
+  Run 1:
+
+ The compute time was 14343281 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 14347778 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 14310838 microseconds.
+
+  ----------
+========================================
+Testing n=4000
+  Run 1:
+
+ The compute time was 19384446 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 19426795 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 20396835 microseconds.
+
+  ----------
+========================================
+Testing n=5000
+  Run 1:
+
+ The compute time was 24709134 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 24695528 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 24551599 microseconds.
+
+  ----------
+========================================
+Testing n=6000
+  Run 1:
+
+ The compute time was 29578572 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 29428397 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 29654366 microseconds.
+
+  ----------
+========================================
+Testing n=7000
+  Run 1:
+
+ The compute time was 34713546 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 34460427 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 34990318 microseconds.
+
+  ----------
+========================================
+Testing n=8000
+  Run 1:
+
+ The compute time was 39786730 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 39659015 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 39775086 microseconds.
+
+  ----------
+========================================
+Testing n=9000
+  Run 1:
+
+ The compute time was 44909159 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 44921018 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 44545067 microseconds.
+
+  ----------
+========================================
+Testing n=10000
+  Run 1:
+
+ The compute time was 49841890 microseconds.
+
+  ----------
+  Run 2:
+
+ The compute time was 49807051 microseconds.
+
+  ----------
+  Run 3:
+
+ The compute time was 50235640 microseconds.
+
+========================================
