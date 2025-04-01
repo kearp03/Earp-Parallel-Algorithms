@@ -1,0 +1,1 @@
+nvcc HW20.cu -o temp -lglut -lGLU -lGL
