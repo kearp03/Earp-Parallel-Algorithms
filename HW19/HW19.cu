@@ -33,6 +33,7 @@
 
 #define DT 0.0001
 #define RUN_TIME 1.0
+#define BLOCK_SIZE 512 // Number of threads in a block
 
 // Globals
 int N, DrawFlag;
@@ -52,7 +53,8 @@ long elaspedTime(struct timeval, struct timeval);
 void drawPicture();
 void timer();
 void setup();
-__global__ void leapFrog(float3 *, float3 *, float3 *, float *, float, float, float, float, float, int);
+__global__ void getForces(float3*, float3*, float*, float, float, int);
+__global__ void leapFrog(float3*, float3*, float3*, float*, float, float, float, int);
 void nBody();
 int main(int, char**);
 
@@ -140,14 +142,63 @@ void setup()
 	float d, dx, dy, dz;
     int test;
     	
-    BlockSize.x = N;
+    BlockSize.x = BLOCK_SIZE;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
-	GridSize.x = 1;
+	GridSize.x = (int)((N-1)/BlockSize.x) + 1;
 	GridSize.y = 1;
 	GridSize.z = 1;
-    	
+    
+	// Picking the best GPU to use based on the compute capability.
+	int count;
+	int best_idx = 0;
+	cudaGetDeviceCount(&count);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaDeviceProp props[count];
+	if(count == 0)
+	{
+		printf("\n\n There are no GPUs on this machine\n");
+		exit(0);
+	}
+	else
+	{
+		cudaGetDeviceProperties(&props[0], 0);
+		cudaErrorCheck(__FILE__, __LINE__);
+	}
+	for(int i = 1; i < count; i++)
+	{
+		cudaGetDeviceProperties(&props[i], i);
+		cudaErrorCheck(__FILE__, __LINE__);
+		if(props[i].major > props[best_idx].major)
+		{
+			best_idx = i;
+		}
+		if(props[i].major == props[best_idx].major)
+		{
+			if(props[i].minor > props[best_idx].minor)
+			{
+				best_idx = i;
+			}
+		}
+	}
+	// Setting the device to the best GPU.
+	cudaSetDevice(best_idx);
+	cudaErrorCheck(__FILE__, __LINE__);
+
+	// Making sure the number of threads in a block and the number of blocks in the grid are not out of bounds.
+	if(BlockSize.x <= 0 || BlockSize.x > props[best_idx].maxThreadsPerBlock)
+	{
+		printf("\n\n The number of threads in a block is out of bounds: (%d, %d, %d)\n", BlockSize.x, BlockSize.y, BlockSize.z);
+		exit(0);
+	}
+
+	if(GridSize.x <= 0 || GridSize.x > props[best_idx].maxGridSize[0])
+	{
+		printf("\n\n The number of blocks in the grid is out of bounds: (%d, %d, %d)\n", GridSize.x, GridSize.y, GridSize.z);
+		exit(0);
+	}
+
     Damp = 0.5;
     	
     M = (float*)malloc(N*sizeof(float));
@@ -229,52 +280,61 @@ void setup()
 	printf("\n To start timing type s.\n");
 }
 
-__global__ void leapFrog(float3 *p, float3 *v, float3 *f, float *m, float g, float h, float damp, float dt, float t, int n)
+__global__ void getForces(float3 *p, float3 *f, float *m, float g, float h, int n)
 {
 	float dx, dy, dz,d,d2;
 	float force_mag;
 	
-	int i = threadIdx.x;
+	int i = threadIdx.x + blockDim.x*blockIdx.x;
 	
-	f[i].x = 0.0f;
-	f[i].y = 0.0f;
-	f[i].z = 0.0f;
-
-	for(int j = 0; j < n; j++)
+	if(i < n)
 	{
-		if(i != j)
+		f[i].x = 0.0f;
+		f[i].y = 0.0f;
+		f[i].z = 0.0f;
+
+		for(int j = 0; j < n; j++)
 		{
-			dx = p[j].x-p[i].x;
-			dy = p[j].y-p[i].y;
-			dz = p[j].z-p[i].z;
-			d2 = dx*dx + dy*dy + dz*dz;
-			d  = sqrt(d2);
-			
-			force_mag  = (g*m[i]*m[j])/(d2) - (h*m[i]*m[j])/(d2*d2);
-			f[i].x += force_mag*dx/d;
-			f[i].y += force_mag*dy/d;
-			f[i].z += force_mag*dz/d;
+			if(i != j)
+			{
+				dx = p[j].x-p[i].x;
+				dy = p[j].y-p[i].y;
+				dz = p[j].z-p[i].z;
+				d2 = dx*dx + dy*dy + dz*dz;
+				d  = sqrt(d2);
+				
+				force_mag  = (g*m[i]*m[j])/(d2) - (h*m[i]*m[j])/(d2*d2);
+				f[i].x += force_mag*dx/d;
+				f[i].y += force_mag*dy/d;
+				f[i].z += force_mag*dz/d;
+			}
 		}
 	}
-	__syncthreads();
-	
-	if(t == 0.0f)
-	{
-		v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt/2.0f;
-		v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt/2.0f;
-		v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt/2.0f;
-	}
-	else
-	{
-		v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt;
-		v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt;
-		v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt;
-	}
+}
 
-	p[i].x += v[i].x*dt;
-	p[i].y += v[i].y*dt;
-	p[i].z += v[i].z*dt;
-	__syncthreads();
+__global__ void leapFrog(float3 *p, float3 *v, float3 *f, float *m, float damp, float dt, float t, int n)
+{
+	int i = threadIdx.x + blockDim.x*blockIdx.x;
+	
+	if(i < n)
+	{
+		if(t == 0.0f)
+		{
+			v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt/2.0f;
+			v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt/2.0f;
+			v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt/2.0f;
+		}
+		else
+		{
+			v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt;
+			v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt;
+			v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt;
+		}
+
+		p[i].x += v[i].x*dt;
+		p[i].y += v[i].y*dt;
+		p[i].z += v[i].z*dt;
+	}
 }
 
 void nBody()
@@ -285,7 +345,10 @@ void nBody()
 
 	while(t < RUN_TIME)
 	{
-		leapFrog<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, G, H, Damp, dt, t, N);
+		getForces<<<GridSize,BlockSize>>>(PGPU, FGPU, MGPU, G, H, N);
+		cudaErrorCheck(__FILE__, __LINE__);
+		leapFrog<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, Damp, dt, t, N);
+		cudaErrorCheck(__FILE__, __LINE__);
 		if(drawCount == DRAW_RATE) 
 		{
 			if(DrawFlag) 
