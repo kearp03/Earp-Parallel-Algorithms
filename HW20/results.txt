@@ -1,0 +1,46 @@
+n=1000
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3279495 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3308789 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3299046 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3309785 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3309187 microseconds.
+
+  ----------
