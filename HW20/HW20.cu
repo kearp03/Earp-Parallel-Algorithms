@@ -141,11 +141,11 @@ void timer()
 
 void setup()
 {
-    	float randomAngle1, randomAngle2, randomRadius;
-    	float d, dx, dy, dz;
-    	int test;
-    	
-    	BlockSize.x = BLOCK_SIZE;
+    float randomAngle1, randomAngle2, randomRadius;
+    float d, dx, dy, dz;
+	int test;
+
+    BlockSize.x = BLOCK_SIZE;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
@@ -153,14 +153,14 @@ void setup()
 	GridSize.y = 1;
 	GridSize.z = 1;
 	
-    	Damp = 0.5;
+    Damp = 0.5;
     	
-    	M = (float*)malloc(N*sizeof(float));
-    	P = (float3*)malloc(N*sizeof(float3));
-    	V = (float3*)malloc(N*sizeof(float3));
-    	F = (float3*)malloc(N*sizeof(float3));
+    M = (float*)malloc(N*sizeof(float));
+    P = (float3*)malloc(N*sizeof(float3));
+    V = (float3*)malloc(N*sizeof(float3));
+    F = (float3*)malloc(N*sizeof(float3));
     	
-    	cudaMalloc(&MGPU,N*sizeof(float));
+    cudaMalloc(&MGPU,N*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMalloc(&PGPU,N*sizeof(float3));
 	cudaErrorCheck(__FILE__, __LINE__);
@@ -335,7 +335,7 @@ void cleanUp()
 
 int main(int argc, char** argv)
 {
-	if( argc < 3)
+	if(argc < 3)
 	{
 		printf("\n You need to enter the number of bodies (an int)"); 
 		printf("\n and if you want to draw the bodies as they move (1 draw, 0 don't draw),");
@@ -396,8 +396,3 @@ int main(int argc, char** argv)
 	glutMainLoop();
 	return 0;
 }
-
-
-
-
-
