@@ -1,11 +1,12 @@
-n=1000
+No Optimizations:
+n=8192
   Run 1:
 
  To start timing type s.
 
  The simulation is running.
 
- The compute time was 3279495 microseconds.
+ The compute time was 27353577 microseconds.
 
   ----------
   Run 2:
@@ -14,7 +15,7 @@ n=1000
 
  The simulation is running.
 
- The compute time was 3308789 microseconds.
+ The compute time was 27332479 microseconds.
 
   ----------
   Run 3:
@@ -23,7 +24,7 @@ n=1000
 
  The simulation is running.
 
- The compute time was 3299046 microseconds.
+ The compute time was 27239539 microseconds.
 
   ----------
   Run 4:
@@ -32,7 +33,7 @@ n=1000
 
  The simulation is running.
 
- The compute time was 3309785 microseconds.
+ The compute time was 26922658 microseconds.
 
   ----------
   Run 5:
@@ -41,6 +42,966 @@ n=1000
 
  The simulation is running.
 
- The compute time was 3309187 microseconds.
+ The compute time was 27061619 microseconds.
+
+  ----------
+
+Fast Math Compile Flag:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11268446 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11103102 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11332730 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11164995 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11131102 microseconds.
+
+  ----------
+
+Remove if(i < n) (fast math):
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12128786 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12221192 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12209119 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12181828 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12201700 microseconds.
+
+  ----------
+
+Increase BlockSize to 512:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 16881440 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 16897171 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 16891597 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 16882021 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 17099265 microseconds.
+
+  ----------
+
+Increase BlockSize to 1024:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 32770066 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 32834438 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 32682200 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 32854700 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 32841944 microseconds.
+
+  ----------
+
+Decrease BlockSize to 32:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11090941 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10986012 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10909260 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10908666 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10921852 microseconds.
+
+  ----------
+
+Increase BlockSize to 64 
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10968656 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10942886 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10944285 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10924216 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11104716 microseconds.
+
+  ----------
+
+Increase BlockSize to 256
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12207143 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12239433 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12262251 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12559766 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12194323 microseconds.
+
+  ----------
+
+Remove time if check
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12198845 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12226487 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12203986 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12216012 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12277105 microseconds.
+
+  ----------
+
+BlockSize decreased to 32
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10994345 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11085035 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10972431 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10992342 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 10987653 microseconds.
+
+  ----------
+
+Increase BlockSize to 256
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12236427 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12388299 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12331992 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12337622 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 12151872 microseconds.
+
+  ----------
+
+Use local variable for my values:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11603284 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11429360 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11440045 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11481982 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 11493866 microseconds.
+
+  ----------
+
+Fix local variable useage:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9558673 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9548032 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9575875 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9608261 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9517016 microseconds.
+
+  ----------
+
+rsqrtf:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9291090 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9631332 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9284551 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9589427 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9235025 microseconds.
+
+  ----------
+
+Use #define:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 8991067 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 8978520 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 8998662 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 8990576 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9007002 microseconds.
+
+  ----------
+
+final make_float3 call:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 8995826 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9009692 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 9016271 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 8989821 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 8954208 microseconds.
+
+  ----------
+
+Break calculations into two for loops:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5775952 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5791260 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5787842 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5763597 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5785225 microseconds.
+
+  ----------
+
+Local Loop variables:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5826006 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5846578 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5839472 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5789711 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5761428 microseconds.
+
+  ----------
+
+Local Inverse Mass:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5768391 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5783459 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5808914 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5791773 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5825280 microseconds.
+
+  ----------
+
+Again:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5947611 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5921488 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5966825 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 6074337 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5967689 microseconds.
+
+  ----------
+
+Local pos and vel:
+n=8192
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5911703 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5909240 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5918577 microseconds.
+
+  ----------
+  Run 4:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 5986611 microseconds.
+
+  ----------
+  Run 5:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 6007455 microseconds.
 
   ----------

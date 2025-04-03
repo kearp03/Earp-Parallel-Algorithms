@@ -1,6 +1,6 @@
 // Name: Kyle Earp
 // Optimizing nBody GPU code. 
-// nvcc HW20.cu -o temp -lglut -lm -lGLU -lGL
+// nvcc HW20.cu -o temp -lglut -lm -lGLU -lGL -use_fast_math
 
 /*
  What to do:
@@ -54,8 +54,9 @@ long elaspedTime(struct timeval, struct timeval);
 void drawPicture();
 void timer();
 void setup();
-__global__ void getForces(float3 *, float3 *, float3 *, float *, float, float, int);
-__global__ void moveBodies(float3 *, float3 *, float3 *, float *, float, float, float, int);
+__global__ void getForces(float3 *, float3 *, float3 *, float *, int);
+__global__ void moveBodiesFirst(float3 *p, float3 *v, float3* f, float *m, float damp, float dt);
+__global__ void moveBodies(float3 *, float3 *, float3 *, float *, float, float, float);
 void nBody();
 void cleanUp();
 int main(int, char**);
@@ -145,6 +146,12 @@ void setup()
     float d, dx, dy, dz;
 	int test;
 
+	if(N < 256 || N > 262144 || (N & (N - 1)) != 0)
+	{
+		printf("\n N must be a power of 2 and between 256 and 262144. Goodbye\n");
+		exit(0);
+	}
+
     BlockSize.x = BLOCK_SIZE;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
@@ -233,61 +240,95 @@ void setup()
 	printf("\n To start timing type s.\n");
 }
 
-__global__ void getForces(float3 *p, float3 *v, float3 *f, float *m, float g, float h, int n)
+__global__ void getForces(float3 *p, float3 *v, float3 *f, float *m, int n)
 {
-	float dx, dy, dz,d,d2;
+	float dx, dy, dz,invd,d2;
 	float force_mag;
 	
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
+	int j;
 	
-	if(i < n)
+	float3 myPos = p[i];
+	float3 threadForce = make_float3(0.0f, 0.0f, 0.0f);
+	// float myMass = m[i];
+	
+	float3 youPos;
+	// float youMass;
+	
+	for(j = 0; j < i; j++)
 	{
-		f[i].x = 0.0f;
-		f[i].y = 0.0f;
-		f[i].z = 0.0f;
-		
-		for(int j = 0; j < n; j++)
-		{
-			if(i != j)
-			{
-				dx = p[j].x-p[i].x;
-				dy = p[j].y-p[i].y;
-				dz = p[j].z-p[i].z;
-				d2 = dx*dx + dy*dy + dz*dz;
-				d  = sqrt(d2);
-				
-				force_mag  = (g*m[i]*m[j])/(d2) - (h*m[i]*m[j])/(d2*d2);
-				f[i].x += force_mag*dx/d;
-				f[i].y += force_mag*dy/d;
-				f[i].z += force_mag*dz/d;
-			}
-		}
+		youPos = p[j];
+		// youMass = m[j];
+		dx = youPos.x-myPos.x;
+		dy = youPos.y-myPos.y;
+		dz = youPos.z-myPos.z;
+		d2 = dx*dx + dy*dy + dz*dz;
+		invd  = rsqrtf(d2);
+			
+		force_mag  = (G)/(d2) - (H)/(d2*d2);
+		threadForce.x += force_mag*dx*invd;
+		threadForce.y += force_mag*dy*invd;
+		threadForce.z += force_mag*dz*invd;
 	}
+	for(j = i+1; j < n; j++)
+	{
+		youPos = p[j];
+		// youMass = m[j];
+		dx = youPos.x-myPos.x;
+		dy = youPos.y-myPos.y;
+		dz = youPos.z-myPos.z;
+		d2 = dx*dx + dy*dy + dz*dz;
+		invd  = rsqrtf(d2);
+			
+		force_mag  = (G)/(d2) - (H)/(d2*d2);
+		threadForce.x += force_mag*dx*invd;
+		threadForce.y += force_mag*dy*invd;
+		threadForce.z += force_mag*dz*invd;
+	}
+	
+	f[i] = make_float3(threadForce.x, threadForce.y, threadForce.z);
 }
 
-__global__ void moveBodies(float3 *p, float3 *v, float3 *f, float *m, float damp, float dt, float t, int n)
+__global__ void moveBodiesFirst(float3 *p, float3 *v, float3* f, float *m, float damp, float dt)
+{
+	int i = threadIdx.x + blockDim.x*blockIdx.x;
+	float invmass = 1/m[i];
+	
+	float3 myPos = p[i];
+	float3 myVel = v[i];
+	float3 myForce = f[i];
+
+	myVel.x += ((myForce.x-damp*myVel.x)*invmass)*0.5f*dt;
+	myVel.y += ((myForce.y-damp*myVel.y)*invmass)*0.5f*dt;
+	myVel.z += ((myForce.z-damp*myVel.z)*invmass)*0.5f*dt;
+
+	myPos.x += myVel.x*dt;
+	myPos.y += myVel.y*dt;
+	myPos.z += myVel.z*dt;
+
+	p[i] = myPos;
+	v[i] = myVel;
+}
+
+__global__ void moveBodies(float3 *p, float3 *v, float3 *f, float *m, float damp, float dt)
 {	
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
+	float invmass = 1/m[i];
 	
-	if(i < n)
-	{
-		if(t == 0.0f)
-		{
-			v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt/2.0f;
-			v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt/2.0f;
-			v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt/2.0f;
-		}
-		else
-		{
-			v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt;
-			v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt;
-			v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt;
-		}
+	float3 myPos = p[i];
+	float3 myVel = v[i];
+	float3 myForce = f[i];
 
-		p[i].x += v[i].x*dt;
-		p[i].y += v[i].y*dt;
-		p[i].z += v[i].z*dt;
-	}
+	myVel.x += ((myForce.x-damp*myVel.x)*invmass)*dt;
+	myVel.y += ((myForce.y-damp*myVel.y)*invmass)*dt;
+	myVel.z += ((myForce.z-damp*myVel.z)*invmass)*dt;
+
+	myPos.x += myVel.x*dt;
+	myPos.y += myVel.y*dt;
+	myPos.z += myVel.z*dt;
+
+	p[i] = myPos;
+	v[i] = myVel;
 }
 
 void nBody()
@@ -296,18 +337,22 @@ void nBody()
 	float  t = 0.0;
 	float dt = 0.0001;
 
+	getForces<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, N);
+	cudaErrorCheck(__FILE__, __LINE__);
+	moveBodiesFirst<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, Damp, dt);
+	cudaErrorCheck(__FILE__, __LINE__);
+	t += dt;
+	drawCount++;
+
 	while(t < RUN_TIME)
 	{
-		getForces<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, G, H, N);
+		getForces<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, N);
 		cudaErrorCheck(__FILE__, __LINE__);
-		moveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, Damp, dt, t, N);
+		moveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, Damp, dt);
 		cudaErrorCheck(__FILE__, __LINE__);
-		if(drawCount == DRAW_RATE) 
+		if(DrawFlag && drawCount == DRAW_RATE) 
 		{
-			if(DrawFlag) 
-			{	
-				drawPicture();
-			}
+			drawPicture();
 			drawCount = 0;
 		}
 		
