@@ -1,0 +1,1 @@
+nvcc HW21.cu -o temp -lglut -lGLU -lGL
