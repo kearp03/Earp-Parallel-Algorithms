@@ -1,6 +1,6 @@
 // Name: Kyle Earp
 // Optimizing nBody GPU code more. 
-// nvcc HW21.cu -o temp -lglut -lm -lGLU -lGL
+// nvcc HW21.cu -o temp -lglut -lm -lGLU -lGL -use_fast_math
 
 /*
  What to do:

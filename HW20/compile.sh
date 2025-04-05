@@ -1,1 +1,1 @@
-nvcc HW20.cu -o temp -lglut -lGLU -lGL
+nvcc HW20.cu -o temp -lglut -lGLU -lGL -use_fast_math
