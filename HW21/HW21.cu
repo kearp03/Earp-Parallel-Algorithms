@@ -24,6 +24,8 @@
  Used shared memory in the force kernal.
 */
 
+// Assumes mass of 1.0 for all bodies.
+
 // Include files
 #include <GL/glut.h>
 #include <math.h>
@@ -44,17 +46,15 @@
 #define LJP  2.0
 #define LJQ  4.0
 
-#define DT 0.0001
+#define DT 0.0001f
 #define RUN_TIME 1.0
+#define DAMP 0.5f
 
 // Globals
 int N, DrawFlag;
 float4 *P, *V, *F;
-float *M; 
 float4 *PGPU, *VGPU, *FGPU;
-float *MGPU;
 float GlobeRadius, Diameter, Radius;
-float Damp;
 dim3 BlockSize;
 dim3 GridSize;
 
@@ -65,8 +65,9 @@ long elaspedTime(struct timeval, struct timeval);
 void drawPicture();
 void timer();
 void setup();
-__global__ void getForces(float4 *, float4 *, float4 *, float *, float, float, int);
-__global__ void moveBodies(float4 *, float4 *, float4 *, float *, float, float, float, int);
+__global__ void getForces(float4 *, float4 *);
+__global__ void initialMoveBodies(float4 *, float4 *, float4 *);
+__global__ void moveBodies(float4 *, float4 *, float4 *);
 void nBody();
 int main(int, char**);
 
@@ -138,11 +139,11 @@ void timer()
 	
 	drawPicture();
 	gettimeofday(&start, NULL);
-    		nBody();
-    		cudaDeviceSynchronize();
+    	nBody();
+    	cudaDeviceSynchronize();
 		cudaErrorCheck(__FILE__, __LINE__);
-    	gettimeofday(&end, NULL);
-    	drawPicture();
+	gettimeofday(&end, NULL);
+	drawPicture();
     	
 	computeTime = elaspedTime(start, end);
 	printf("\n The compute time was %ld microseconds.\n\n", computeTime);
@@ -150,27 +151,17 @@ void timer()
 
 void setup()
 {
-    	float randomAngle1, randomAngle2, randomRadius;
-    	float d, dx, dy, dz;
-    	int test;
+    float randomAngle1, randomAngle2, randomRadius;
+    float d, dx, dy, dz;
+    int test;
     	
-    	BlockSize.x = BLOCK_SIZE;
+    BlockSize.x = BLOCK_SIZE;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
 	GridSize.x = (N - 1)/BlockSize.x + 1; //Makes enough blocks to deal with the whole vector.
 	GridSize.y = 1;
 	GridSize.z = 1;
-	
-	// Using bit shifting to see if block size is a power of 2.
-	// If your block size is not a power of 2, we tell the user to reset the block size and try agian.
-	if((BlockSize.x > 0) && (BlockSize.x & (BlockSize.x - 1)) != 0)
-	{
-		printf("\n Your block size of %d is not a power of 2 hence, this code will not work.", BlockSize.x);
-		printf("\n Reset your block size and try again.");
-		printf("\n Good Bye\n");
-		exit(0);
-	}
 	
 	// Making sure N is a multiple of the block size so we do not have to check if we are working past N.
 	// Then making sure N is in the range stated above.
@@ -180,24 +171,12 @@ void setup()
 		printf("\n Reset the number of bodies you want to simulate and try again.");
 		printf("\n Good Bye\n");
 		exit(0);
-	} 
-	else if(N < 256 || 262144 < N)
-	{
-		printf("\n Your number of bodies %d must be between 256 and 262,144, this code will not work.", N);
-		printf("\n Reset the number of bodies you want to simulate and try again.");
-		printf("\n Good Bye\n");
-		exit(0);
-	} 
-	
-    	Damp = 0.5;
-    	
-    	M = (float*)malloc(N*sizeof(float));
-    	P = (float4*)malloc(N*sizeof(float4));
-    	V = (float4*)malloc(N*sizeof(float4));
-    	F = (float4*)malloc(N*sizeof(float4));
-    	
-    	cudaMalloc(&MGPU,N*sizeof(float));
-	cudaErrorCheck(__FILE__, __LINE__);
+	}
+
+    P = (float4*)malloc(N*sizeof(float4));
+    V = (float4*)malloc(N*sizeof(float4));
+    F = (float4*)malloc(N*sizeof(float4));
+    
 	cudaMalloc(&PGPU,N*sizeof(float4));
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMalloc(&VGPU,N*sizeof(float4));
@@ -253,8 +232,6 @@ void setup()
 		F[i].x = 0.0;
 		F[i].y = 0.0;
 		F[i].z = 0.0;
-		
-		M[i] = 1.0;
 	}
 	
 	cudaMemcpyAsync(PGPU, P, N*sizeof(float4), cudaMemcpyHostToDevice);
@@ -263,83 +240,139 @@ void setup()
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMemcpyAsync(FGPU, F, N*sizeof(float4), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
-	cudaMemcpyAsync(MGPU, M, N*sizeof(float), cudaMemcpyHostToDevice);
-	cudaErrorCheck(__FILE__, __LINE__);
 	
 	printf("\n To start timing type s.\n");
 }
 
-__global__ void getForces(float4 *p, float4 *v, float4 *f, float *m, float g, float h, int n)
+__global__ void getForces(float4* p, float4 *f)
 {
-	float dx, dy, dz,d,d2;
+	float dx, dy, dz,invd,invd2;
 	float force_mag;
 	__shared__ float4 p_sh[BLOCK_SIZE];
 	
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
 	
-	f[i].x = 0.0f;
-	f[i].y = 0.0f;
-	f[i].z = 0.0f;
+	float4 p_i = p[i];
+	float4 f_i = make_float4(0.0, 0.0, 0.0, 0.0);
+	float4 p_j;
 	
 	for(int k = 0; k < gridDim.x; k++)
 	{
-		p_sh[threadIdx.x].x = p[threadIdx.x + k*blockDim.x].x;
-		p_sh[threadIdx.x].y = p[threadIdx.x + k*blockDim.x].y;
-		p_sh[threadIdx.x].z = p[threadIdx.x + k*blockDim.x].z;
+		p_sh[threadIdx.x] = p[threadIdx.x + k*blockDim.x];
 		__syncthreads();
 		
-		for(int j = 0; j < blockDim.x; j++)
+		if(k == blockIdx.x)
 		{
-			if(i != j + blockDim.x*blockIdx.x)
+			#pragma unroll 16
+			for(int j = 0; j < threadIdx.x; j++)
 			{
-				dx = p_sh[j].x - p[i].x;
-				dy = p_sh[j].y - p[i].y;
-				dz = p_sh[j].z - p[i].z;
-				d2 = dx*dx + dy*dy + dz*dz;
-				d  = sqrt(d2);
+				p_j = p_sh[j];
+				dx = p_j.x - p_i.x;
+				dy = p_j.y - p_i.y;
+				dz = p_j.z - p_i.z;
+				invd2 = 1.0f/(dx*dx + dy*dy + dz*dz);
+				invd = sqrt(invd2);
 				
-				force_mag  = (g*m[i]*m[j])/(d2) - (h*m[i]*m[j])/(d2*d2);
-				f[i].x += force_mag*dx/d;
-				f[i].y += force_mag*dy/d;
-				f[i].z += force_mag*dz/d;
+				force_mag  = (G)*(invd2) - (H)*(invd2*invd2);
+				f_i.x += force_mag*dx*invd;
+				f_i.y += force_mag*dy*invd;
+				f_i.z += force_mag*dz*invd;
+			}
+			#pragma unroll 16
+			for(int j = threadIdx.x + 1; j < blockDim.x; j++)
+			{
+				p_j = p_sh[j];
+				dx = p_j.x - p_i.x;
+				dy = p_j.y - p_i.y;
+				dz = p_j.z - p_i.z;
+				invd2 = 1.0f/(dx*dx + dy*dy + dz*dz);
+				invd = sqrt(invd2);
+				
+				force_mag  = (G)*(invd2) - (H)*(invd2*invd2);
+				f_i.x += force_mag*dx*invd;
+				f_i.y += force_mag*dy*invd;
+				f_i.z += force_mag*dz*invd;
 			}
 		}
+		else
+		{
+			#pragma unroll 128
+			for(int j = 0; j < blockDim.x; j++)
+			{
+				p_j = p_sh[j];
+				dx = p_j.x - p_i.x;
+				dy = p_j.y - p_i.y;
+				dz = p_j.z - p_i.z;
+				invd2 = 1.0f/(dx*dx + dy*dy + dz*dz);
+				invd = sqrt(invd2);
+
+				force_mag  = (G)*(invd2) - (H)*(invd2*invd2);
+				f_i.x += force_mag*dx*invd;
+				f_i.y += force_mag*dy*invd;
+				f_i.z += force_mag*dz*invd;
+			}
+		}
+		__syncthreads();
 	}
+
+	f[i] = f_i;
 }
 
-__global__ void moveBodies(float4 *p, float4 *v, float4 *f, float *m, float damp, float dt, float t, int n)
+__global__ void initialMoveBodies(float4 *p, float4 *v, float4 *f)
+{
+	int i = threadIdx.x + blockDim.x*blockIdx.x;
+	float4 p_i = p[i];
+	float4 v_i = v[i];
+	float4 f_i = f[i];
+	
+	v_i.x += (f_i.x-DAMP*v_i.x)*0.5f*DT;
+	v_i.y += (f_i.y-DAMP*v_i.y)*0.5f*DT;
+	v_i.z += (f_i.z-DAMP*v_i.z)*0.5f*DT;
+
+	p_i.x += v_i.x*DT;
+	p_i.y += v_i.y*DT;
+	p_i.z += v_i.z*DT;
+
+	p[i] = p_i;
+	v[i] = v_i;
+}
+
+__global__ void moveBodies(float4 *p, float4 *v, float4 *f)
 {	
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
-	
-	if(t == 0.0f)
-	{
-		v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt/2.0f;
-		v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt/2.0f;
-		v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt/2.0f;
-	}
-	else
-	{
-		v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt;
-		v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt;
-		v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt;
-	}
+	float4 p_i = p[i];
+	float4 v_i = v[i];
+	float4 f_i = f[i];
 
-	p[i].x += v[i].x*dt;
-	p[i].y += v[i].y*dt;
-	p[i].z += v[i].z*dt;
+	v_i.x += (f_i.x-DAMP*v_i.x)*DT;
+	v_i.y += (f_i.y-DAMP*v_i.y)*DT;
+	v_i.z += (f_i.z-DAMP*v_i.z)*DT;
+
+	p_i.x += v_i.x*DT;
+	p_i.y += v_i.y*DT;
+	p_i.z += v_i.z*DT;
+
+	p[i] = p_i;
+	v[i] = v_i;
 }
 
 void nBody()
 {
 	int    drawCount = 0; 
 	float  t = 0.0;
-	float dt = 0.0001;
+
+	getForces<<<GridSize,BlockSize>>>(PGPU, FGPU);
+	cudaErrorCheck(__FILE__, __LINE__);
+	initialMoveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU);
+	cudaErrorCheck(__FILE__, __LINE__);
+	t += DT;
+	drawCount++;
 
 	while(t < RUN_TIME)
 	{
-		getForces<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, G, H, N);
+		getForces<<<GridSize,BlockSize>>>(PGPU, FGPU);
 		cudaErrorCheck(__FILE__, __LINE__);
-		moveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, Damp, dt, t, N);
+		moveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU);
 		cudaErrorCheck(__FILE__, __LINE__);
 		if(drawCount == DRAW_RATE) 
 		{
@@ -350,14 +383,14 @@ void nBody()
 			drawCount = 0;
 		}
 		
-		t += dt;
+		t += DT;
 		drawCount++;
 	}
 }
 
 int main(int argc, char** argv)
 {
-	if( argc < 3)
+	if(argc < 3)
 	{
 		printf("\n You need to enter the number of bodies (an int)"); 
 		printf("\n and if you want to draw the bodies as they move (1 draw, 0 don't draw),");
@@ -418,8 +451,3 @@ int main(int argc, char** argv)
 	glutMainLoop();
 	return 0;
 }
-
-
-
-
-
