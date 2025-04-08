@@ -1,0 +1,407 @@
+Basic upgrades:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 6565062 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 6560776 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 6559633 microseconds.
+
+  ----------
+
+Multiple loops:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3455618 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3350672 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3390299 microseconds.
+
+  ----------
+Initial MoveBodies function
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3355296 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3334972 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3335404 microseconds.
+
+  ----------
+Inverse Square:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3178758 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3159394 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3166994 microseconds.
+
+  ----------
+1/d2 = invd*invd
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3931102 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3888896 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3910621 microseconds.
+
+  ----------
+Revert to inverse square
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3226793 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3201475 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3181330 microseconds.
+
+  ----------
+#pragma unroll 4:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3199416 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3182663 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 3197194 microseconds.
+
+  ----------
+#pragma unroll 8 for else block:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 2985817 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 2971735 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 2979475 microseconds.
+
+  ----------
+#pragma unroll 16 for else block:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 2148948 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 2145546 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 2133372 microseconds.
+
+  ----------
+#pragma unroll 32 for else block:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1972317 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1952779 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1963707 microseconds.
+
+  ----------
+#pragma unroll 64 for else block:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1915728 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1878678 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1881570 microseconds.
+
+  ----------
+#pragma unroll 128 for else block
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1848149 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1828994 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1874819 microseconds.
+
+  ----------
+#pragma unroll 8 in if block:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1848456 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1854022 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1839654 microseconds.
+
+  ----------
+#pragma unroll 16 in if block:
+n=10752
+  Run 1:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1849369 microseconds.
+
+  ----------
+  Run 2:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1824949 microseconds.
+
+  ----------
+  Run 3:
+
+ To start timing type s.
+
+ The simulation is running.
+
+ The compute time was 1828003 microseconds.
+
+  ----------
