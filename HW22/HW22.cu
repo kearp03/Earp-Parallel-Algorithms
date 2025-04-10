@@ -1,4 +1,4 @@
-// Name:
+// Name: Kyle Earp
 // Vector addition on two GPUs.
 // nvcc HW22.cu -o temp
 /*
@@ -34,14 +34,14 @@ int N_GPU1, N_GPU2; // Length of the vector for each GPU
 float *A_CPU, *B_CPU, *C_CPU; //CPU pointers
 float *A_GPU1, *B_GPU1, *C_GPU1, *A_GPU2, *B_GPU2, *C_GPU2; //GPU pointers
 dim3 BlockSize; //This variable will hold the Dimensions of your blocks
-dim3 GridSize; //This variable will hold the Dimensions of your grid
+dim3 GridSize0, GridSize1; //This variable will hold the Dimensions of your grid
 float Tolerance = 0.01;
 
 // Function prototypes
 void cudaErrorCheck(const char *, int);
 void setUpDevices();
 void allocateMemory();
-void innitialize();
+void initialize();
 void addVectorsCPU(float*, float*, float*, int);
 __global__ void addVectorsGPU(float*, float*, float*, int);
 bool  check(float*, int);
@@ -79,22 +79,19 @@ void setUpDevices()
 
 	// Getting the number of elements for each GPU.
 	N_GPU2 = N/2;
-	if(N%2 == 0)
-	{
-		N_GPU1 = N/2;
-	}
-	else
-	{
-		N_GPU1 = N/2 + 1;
-	}
+	N_GPU1 = N - N_GPU2;
 
 	BlockSize.x = 256;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
-	GridSize.x = (N_GPU1 - 1)/BlockSize.x + 1; // This gives us the correct number of blocks.
-	GridSize.y = 1;
-	GridSize.z = 1;
+	GridSize0.x = (N_GPU1 - 1)/BlockSize.x + 1; // This gives us the correct number of blocks.
+	GridSize0.y = 1;
+	GridSize0.z = 1;
+
+	GridSize1.x = (N_GPU2 - 1)/BlockSize.x + 1; // This gives us the correct number of blocks.
+	GridSize1.y = 1;
+	GridSize1.z = 1;
 }
 
 // Allocating the memory we will be using.
@@ -113,16 +110,24 @@ void allocateMemory()
 	cudaMalloc(&C_GPU1,N_GPU1*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
 
+	// Set the second GPU to be the second device.
+	cudaSetDevice(1);
+	cudaErrorCheck(__FILE__, __LINE__);
+
 	cudaMalloc(&A_GPU2,N_GPU2*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMalloc(&B_GPU2,N_GPU2*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMalloc(&C_GPU2,N_GPU2*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
+
+	// Set the first GPU to be the first device.
+	cudaSetDevice(0);
+	cudaErrorCheck(__FILE__, __LINE__);
 }
 
 // Loading values into the vectors that we will add.
-void innitialize()
+void initialize()
 {
 	for(int i = 0; i < N; i++)
 	{		
@@ -202,11 +207,20 @@ void CleanUp()
 	free(B_CPU); 
 	free(C_CPU);
 	
+	// Freeing device "GPU" memory.
+	
+	// Set the first GPU to be the first device.
+	cudaSetDevice(0);
+	cudaErrorCheck(__FILE__, __LINE__);
 	cudaFree(A_GPU1);
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaFree(B_GPU1);
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaFree(C_GPU1);
+	
+	// Set the second GPU to be the second device.
+	cudaSetDevice(1);
+	cudaErrorCheck(__FILE__, __LINE__);
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaFree(A_GPU2);
 	cudaErrorCheck(__FILE__, __LINE__);
@@ -228,7 +242,7 @@ int main()
 	allocateMemory();
 	
 	// Putting values in the vectors.
-	innitialize();
+	initialize();
 	
 	// Adding on the CPU
 	gettimeofday(&start, NULL);
@@ -245,34 +259,48 @@ int main()
 	// Adding on the GPU
 	gettimeofday(&start, NULL);
 	
-	// Copy Memory from CPU to GPU		
+	// Copy Memory from CPU to GPU1	
 	cudaMemcpyAsync(A_GPU1, A_CPU, N_GPU1*sizeof(float), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMemcpyAsync(B_GPU1, B_CPU, N_GPU1*sizeof(float), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
-	
-	addVectorsGPU<<<GridSize,BlockSize>>>(A_GPU1, B_GPU1 ,C_GPU1, N_GPU1);
-	cudaErrorCheck(__FILE__, __LINE__);
-	
-	// Copy Memory from GPU to CPU	
-	cudaMemcpyAsync(C_CPU, C_GPU1, N_GPU1*sizeof(float), cudaMemcpyDeviceToHost);
+
+	// Launch the kernel on the first GPU.
+	addVectorsGPU<<<GridSize0,BlockSize>>>(A_GPU1, B_GPU1 ,C_GPU1, N_GPU1);
 	cudaErrorCheck(__FILE__, __LINE__);
 	
 	// Set the second GPU to be the second device.
 	cudaSetDevice(1);
 	cudaErrorCheck(__FILE__, __LINE__);
 
-	// Copy Memory from CPU to GPU
+	// Copy Memory from CPU to GPU2
 	cudaMemcpyAsync(A_GPU2, A_CPU + N_GPU1, N_GPU2*sizeof(float), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMemcpyAsync(B_GPU2, B_CPU + N_GPU1, N_GPU2*sizeof(float), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
 
-	addVectorsGPU<<<GridSize,BlockSize>>>(A_GPU2, B_GPU2 ,C_GPU2, N_GPU2);
+	// Launch the kernel on the second GPU.
+	addVectorsGPU<<<GridSize1,BlockSize>>>(A_GPU2, B_GPU2 ,C_GPU2, N_GPU2);
 	cudaErrorCheck(__FILE__, __LINE__);
 
-	// Copy Memory from GPU to CPU
+	// Copy Memory from GPU2 to CPU
 	cudaMemcpyAsync(C_CPU + N_GPU1, C_GPU2, N_GPU2*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaErrorCheck(__FILE__, __LINE__);
+
+	// Set the first GPU to be the first device.
+	cudaSetDevice(0);
+	cudaErrorCheck(__FILE__, __LINE__);
+
+	// Copy Memory from GPU1 to CPU	
+	cudaMemcpyAsync(C_CPU, C_GPU1, N_GPU1*sizeof(float), cudaMemcpyDeviceToHost);
+	cudaErrorCheck(__FILE__, __LINE__);
+	
+	// Making sure the GPU and CPU wait until each other are at the same place.
+	cudaDeviceSynchronize();
+	cudaErrorCheck(__FILE__, __LINE__);
+
+	// Set the second GPU to be the second device.
+	cudaSetDevice(1);
 	cudaErrorCheck(__FILE__, __LINE__);
 
 	// Making sure the GPU and CPU wait until each other are at the same place.
@@ -302,4 +330,3 @@ int main()
 	
 	return(0);
 }
-
