@@ -1,6 +1,6 @@
 // Name: Kyle Earp
 // Optimizing nBody GPU code more. 
-// nvcc HW21.cu -o temp -lglut -lm -lGLU -lGL -use_fast_math
+// nvcc HW21Extra.cu -o temp -lglut -lm -lGLU -lGL -use_fast_math
 
 /*
  What to do:
@@ -23,8 +23,6 @@
  Checked to see if 256 < N < 262,144.
  Used shared memory in the force kernal.
 */
-
-// Assumes mass of 1.0 for all bodies.
 
 // Include files
 #include <GL/glut.h>
@@ -54,9 +52,11 @@
 int N, DrawFlag;
 float4 *P, *V, *F;
 float4 *PGPU, *VGPU, *FGPU;
+float *M, *MGPU;
 float GlobeRadius, Diameter, Radius;
 dim3 BlockSize;
 dim3 GridSize;
+__constant__ float device_constants[4];
 
 // Function prototypes
 void cudaErrorCheck(const char *, int);
@@ -65,9 +65,9 @@ long elaspedTime(struct timeval, struct timeval);
 void drawPicture();
 void timer();
 void setup();
-__global__ void getForces(float4 *, float4 *);
-__global__ void initialMoveBodies(float4 *, float4 *, float4 *);
-__global__ void moveBodies(float4 *, float4 *, float4 *);
+__global__ void getForces(float4*, float4*, float*);
+__global__ void initialMoveBodies(float4*, float4*, float4*, float*);
+__global__ void moveBodies(float4*, float4*, float4*, float*);
 void nBody();
 int main(int, char**);
 
@@ -176,12 +176,15 @@ void setup()
     P = (float4*)malloc(N*sizeof(float4));
     V = (float4*)malloc(N*sizeof(float4));
     F = (float4*)malloc(N*sizeof(float4));
+	M = (float*)malloc(N*sizeof(float));
     
 	cudaMalloc(&PGPU,N*sizeof(float4));
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMalloc(&VGPU,N*sizeof(float4));
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMalloc(&FGPU,N*sizeof(float4));
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaMalloc(&MGPU,N*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
     	
 	Diameter = pow(H/G, 1.0/(LJQ - LJP)); // This is the value where the force is zero for the L-J type force.
@@ -232,33 +235,45 @@ void setup()
 		F[i].x = 0.0;
 		F[i].y = 0.0;
 		F[i].z = 0.0;
+
+		M[i] = 1.0;
 	}
 	
+	float h_constants[4] = {G, H, DAMP, DT};
+	cudaMemcpyToSymbol(device_constants, h_constants, 4*sizeof(float));
+	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMemcpyAsync(PGPU, P, N*sizeof(float4), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMemcpyAsync(VGPU, V, N*sizeof(float4), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMemcpyAsync(FGPU, F, N*sizeof(float4), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
+	cudaMemcpyAsync(MGPU, M, N*sizeof(float), cudaMemcpyHostToDevice);
+	cudaErrorCheck(__FILE__, __LINE__);
 	
 	printf("\n To start timing type s.\n");
 }
 
-__global__ void getForces(float4* p, float4 *f)
+__global__ void getForces(float4* p, float4 *f, float *m)
 {
 	float dx, dy, dz,invd,invd2;
 	float force_mag;
 	__shared__ float4 p_sh[BLOCK_SIZE];
+	__shared__ float m_sh[BLOCK_SIZE];
 	
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
 	
 	float4 p_i = p[i];
 	float4 f_i = make_float4(0.0, 0.0, 0.0, 0.0);
+	float m_i = m[i];
+	float g = device_constants[0], h = device_constants[1];
 	float4 p_j;
+	float m_j;
 	
 	for(int k = 0; k < gridDim.x; k++)
 	{
 		p_sh[threadIdx.x] = p[threadIdx.x + k*blockDim.x];
+		m_sh[threadIdx.x] = m[threadIdx.x + k*blockDim.x];
 		__syncthreads();
 		
 		if(k == blockIdx.x)
@@ -267,31 +282,33 @@ __global__ void getForces(float4* p, float4 *f)
 			for(int j = 0; j < threadIdx.x; j++)
 			{
 				p_j = p_sh[j];
+				m_j = m_sh[j];
 				dx = p_j.x - p_i.x;
 				dy = p_j.y - p_i.y;
 				dz = p_j.z - p_i.z;
 				invd2 = 1.0f/(dx*dx + dy*dy + dz*dz);
 				invd = sqrt(invd2);
 				
-				force_mag  = (G)*(invd2) - (H)*(invd2*invd2);
-				f_i.x += force_mag*dx*invd;
-				f_i.y += force_mag*dy*invd;
-				f_i.z += force_mag*dz*invd;
+				force_mag  = ((g*m_i*m_j)*(invd2) - (h*m_i*m_j)*(invd2*invd2))*invd;
+				f_i.x += force_mag*dx;
+				f_i.y += force_mag*dy;
+				f_i.z += force_mag*dz;
 			}
 			#pragma unroll 16
 			for(int j = threadIdx.x + 1; j < blockDim.x; j++)
 			{
 				p_j = p_sh[j];
+				m_j = m_sh[j];
 				dx = p_j.x - p_i.x;
 				dy = p_j.y - p_i.y;
 				dz = p_j.z - p_i.z;
 				invd2 = 1.0f/(dx*dx + dy*dy + dz*dz);
 				invd = sqrt(invd2);
 				
-				force_mag  = (G)*(invd2) - (H)*(invd2*invd2);
-				f_i.x += force_mag*dx*invd;
-				f_i.y += force_mag*dy*invd;
-				f_i.z += force_mag*dz*invd;
+				force_mag  = ((g*m_i*m_j)*(invd2) - (h*m_i*m_j)*(invd2*invd2))*invd;
+				f_i.x += force_mag*dx;
+				f_i.y += force_mag*dy;
+				f_i.z += force_mag*dz;
 			}
 		}
 		else
@@ -300,16 +317,17 @@ __global__ void getForces(float4* p, float4 *f)
 			for(int j = 0; j < blockDim.x; j++)
 			{
 				p_j = p_sh[j];
+				m_j = m_sh[j];
 				dx = p_j.x - p_i.x;
 				dy = p_j.y - p_i.y;
 				dz = p_j.z - p_i.z;
 				invd2 = 1.0f/(dx*dx + dy*dy + dz*dz);
 				invd = sqrt(invd2);
 
-				force_mag  = (G)*(invd2) - (H)*(invd2*invd2);
-				f_i.x += force_mag*dx*invd;
-				f_i.y += force_mag*dy*invd;
-				f_i.z += force_mag*dz*invd;
+				force_mag  = ((g*m_i*m_j)*(invd2) - (h*m_i*m_j)*(invd2*invd2))*invd;
+				f_i.x += force_mag*dx;
+				f_i.y += force_mag*dy;
+				f_i.z += force_mag*dz;
 			}
 		}
 		__syncthreads();
@@ -318,39 +336,51 @@ __global__ void getForces(float4* p, float4 *f)
 	f[i] = f_i;
 }
 
-__global__ void initialMoveBodies(float4 *p, float4 *v, float4 *f)
+__global__ void initialMoveBodies(float4 *p, float4 *v, float4 *f, float *m)
 {
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
+
+	float damp = device_constants[2], dt = device_constants[3];
+
 	float4 p_i = p[i];
 	float4 v_i = v[i];
 	float4 f_i = f[i];
+	float m_i = m[i];
 	
-	v_i.x += (f_i.x-DAMP*v_i.x)*0.5f*DT;
-	v_i.y += (f_i.y-DAMP*v_i.y)*0.5f*DT;
-	v_i.z += (f_i.z-DAMP*v_i.z)*0.5f*DT;
+	float vel_mult = 0.5f*dt/m_i;
 
-	p_i.x += v_i.x*DT;
-	p_i.y += v_i.y*DT;
-	p_i.z += v_i.z*DT;
+	v_i.x += (f_i.x-damp*v_i.x)*vel_mult;
+	v_i.y += (f_i.y-damp*v_i.y)*vel_mult;
+	v_i.z += (f_i.z-damp*v_i.z)*vel_mult;
+
+	p_i.x += v_i.x*dt;
+	p_i.y += v_i.y*dt;
+	p_i.z += v_i.z*dt;
 
 	p[i] = p_i;
 	v[i] = v_i;
 }
 
-__global__ void moveBodies(float4 *p, float4 *v, float4 *f)
+__global__ void moveBodies(float4 *p, float4 *v, float4 *f, float *m)
 {	
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
+
+	float damp = device_constants[2], dt = device_constants[3];
+
 	float4 p_i = p[i];
 	float4 v_i = v[i];
 	float4 f_i = f[i];
+	float m_i = m[i];
 
-	v_i.x += (f_i.x-DAMP*v_i.x)*DT;
-	v_i.y += (f_i.y-DAMP*v_i.y)*DT;
-	v_i.z += (f_i.z-DAMP*v_i.z)*DT;
+	float vel_mult = dt/m_i;
 
-	p_i.x += v_i.x*DT;
-	p_i.y += v_i.y*DT;
-	p_i.z += v_i.z*DT;
+	v_i.x += (f_i.x-damp*v_i.x)*vel_mult;
+	v_i.y += (f_i.y-damp*v_i.y)*vel_mult;
+	v_i.z += (f_i.z-damp*v_i.z)*vel_mult;
+
+	p_i.x += v_i.x*dt;
+	p_i.y += v_i.y*dt;
+	p_i.z += v_i.z*dt;
 
 	p[i] = p_i;
 	v[i] = v_i;
@@ -361,18 +391,18 @@ void nBody()
 	int    drawCount = 0; 
 	float  t = 0.0;
 
-	getForces<<<GridSize,BlockSize>>>(PGPU, FGPU);
+	getForces<<<GridSize,BlockSize>>>(PGPU, FGPU, MGPU);
 	cudaErrorCheck(__FILE__, __LINE__);
-	initialMoveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU);
+	initialMoveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU);
 	cudaErrorCheck(__FILE__, __LINE__);
 	t += DT;
 	drawCount++;
 
 	while(t < RUN_TIME)
 	{
-		getForces<<<GridSize,BlockSize>>>(PGPU, FGPU);
+		getForces<<<GridSize,BlockSize>>>(PGPU, FGPU, MGPU);
 		cudaErrorCheck(__FILE__, __LINE__);
-		moveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU);
+		moveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU);
 		cudaErrorCheck(__FILE__, __LINE__);
 		if(drawCount == DRAW_RATE) 
 		{
