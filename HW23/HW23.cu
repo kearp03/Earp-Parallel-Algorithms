@@ -69,6 +69,11 @@ void setUpDevices()
 {
 	cudaGetDeviceCount(&GPUCount);
 	printf("\n\n Number of GPUs available: %d", GPUCount);
+	if(GPUCount == 0)
+	{
+		printf("\n\n You do not have any GPUs. Please run on a machine with a GPU.\n");
+		exit(0);
+	}
 	// if(GPUCount < 2)
 	// {
 	// 	printf("\n\n You do not have two GPUs. Please run on a machine with two GPUs. Loser.\n");
