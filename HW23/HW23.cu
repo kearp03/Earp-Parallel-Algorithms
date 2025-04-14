@@ -266,6 +266,12 @@ int main()
 		// Launch the kernel on the GPU.
 		addVectorsGPU<<<GridSizes[i],BlockSize>>>(A_GPU[i], B_GPU[i] ,C_GPU[i], GPU_Ns[i]);
 		cudaErrorCheck(__FILE__, __LINE__);
+	}
+
+	for(int i = 0; i < GPUCount; i++)
+	{
+		cudaSetDevice(i);
+		cudaErrorCheck(__FILE__, __LINE__);
 		// Copy Memory from GPU to CPU
 		cudaMemcpyAsync(C_CPU + i*GPU_Ns[i], C_GPU[i], GPU_Ns[i]*sizeof(float), cudaMemcpyDeviceToHost);
 		cudaErrorCheck(__FILE__, __LINE__);
