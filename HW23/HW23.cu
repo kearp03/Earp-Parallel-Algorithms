@@ -84,13 +84,11 @@ void setUpDevices()
 	GPU_Ns = (int*)malloc(GPUCount*sizeof(int));
 
 	// Getting the number of elements for each GPU.
-	int runningTotal = 0;
-	for(int i = 0; i < GPUCount-1; i++)
+	for(int i = 0; i < GPUCount; i++)
 	{
 		GPU_Ns[i] = N/GPUCount;
-		runningTotal += GPU_Ns[i];
 	}
-	GPU_Ns[GPUCount-1] = N - runningTotal;
+	GPU_Ns[GPUCount-1] += N % GPUCount; // This is to make sure we do not lose the last elements of the vector.
 
 	BlockSize.x = 256;
 	BlockSize.y = 1;
