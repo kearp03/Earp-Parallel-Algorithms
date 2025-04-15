@@ -49,8 +49,8 @@ dim3 GridSize0, GridSize1;
 void cudaErrorCheck(const char *, int);
 void drawPicture();
 void setup();
-__global__ void getForces(float3 *, float3 *, float3 *, float *, float, float, int);
-__global__ void moveBodies(float3 *, float3 *, float3 *, float *, float, float, float, int);
+__global__ void getForces(float3 *, float3 *, float3 *, float *, float, float, int, int);
+__global__ void moveBodies(float3 *, float3 *, float3 *, float *, float, float, float, int, int);
 void nBody();
 int main(int, char**);
 
@@ -108,7 +108,7 @@ void setup()
     
     N = 1000;
 	NGPU0 = N/2;
-	NGPU1 = N - NGPU0;
+	NGPU1 = N/2 + N%2; // This is to make sure we do not lose the last element of the vector.
     
     BlockSize.x = BLOCK_SIZE;
 	BlockSize.y = 1;
