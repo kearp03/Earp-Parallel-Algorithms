@@ -44,6 +44,7 @@ float GlobeRadius, Diameter, Radius;
 float Damp;
 dim3 BlockSize;
 dim3 GridSize0, GridSize1;
+cudaEvent_t event0, event1;
 
 // Function prototypes
 void cudaErrorCheck(const char *, int);
@@ -122,6 +123,16 @@ void setup()
 	GridSize1.y = 1;
 	GridSize1.z = 1;
 	
+	// Create the CUDA events for the two GPUs
+	cudaSetDevice(0);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaEventCreate(&event0);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaSetDevice(1);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaEventCreate(&event1);
+	cudaErrorCheck(__FILE__, __LINE__);
+
     Damp = 0.5;
     
     M = (float*)malloc(N*sizeof(float));
@@ -298,6 +309,8 @@ void nBody()
 		cudaErrorCheck(__FILE__, __LINE__);
 		moveBodies<<<GridSize0,BlockSize>>>(PGPU0, VGPU0, FGPU0, MGPU0, Damp, dt, t, N, 0);
 		cudaErrorCheck(__FILE__, __LINE__);
+		cudaEventRecord(event0, 0);
+		cudaErrorCheck(__FILE__, __LINE__);
 
 		cudaSetDevice(1);
 		cudaErrorCheck(__FILE__, __LINE__);
@@ -305,16 +318,22 @@ void nBody()
 		cudaErrorCheck(__FILE__, __LINE__);
 		moveBodies<<<GridSize1,BlockSize>>>(PGPU1, VGPU1, FGPU1, MGPU1, Damp, dt, t, N, NGPU0);
 		cudaErrorCheck(__FILE__, __LINE__);
+		cudaEventRecord(event1, 0);
+		cudaErrorCheck(__FILE__, __LINE__);
 
 		// Copy positions between devices
 		cudaSetDevice(0);
 		cudaErrorCheck(__FILE__, __LINE__);
-		cudaMemcpyAsync(PGPU1, PGPU0, NGPU0*sizeof(float3), cudaMemcpyDeviceToDevice);
+		cudaStreamWaitEvent(0, event1);
+		cudaErrorCheck(__FILE__, __LINE__);
+		cudaMemcpyPeerAsync(PGPU1, 1, PGPU0, 0, NGPU0*sizeof(float3));
 		cudaErrorCheck(__FILE__, __LINE__);
 		
 		cudaSetDevice(1);
 		cudaErrorCheck(__FILE__, __LINE__);
-		cudaMemcpyAsync(PGPU0+NGPU0, PGPU1+NGPU0, NGPU1*sizeof(float3), cudaMemcpyDeviceToDevice);
+		cudaStreamWaitEvent(0, event0);
+		cudaErrorCheck(__FILE__, __LINE__);
+		cudaMemcpyPeerAsync(PGPU0+NGPU0, 0, PGPU1+NGPU0, 1, NGPU1*sizeof(float3));
 		cudaErrorCheck(__FILE__, __LINE__);
 
 		if(drawCount == DRAW_RATE) 
