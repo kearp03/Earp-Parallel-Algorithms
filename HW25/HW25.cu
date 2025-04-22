@@ -315,7 +315,7 @@ void nBody()
 			{
 				if(i != j)
 				{
-					cudaMemcpyAsync(PGPUs[j] + offsetBase*i, PGPUs[i] + offsetBase*i, NGPUs[j]*sizeof(float3), cudaMemcpyDeviceToDevice);
+					cudaMemcpyAsync(PGPUs[j] + offsetBase*i, PGPUs[i] + offsetBase*i, NGPUs[i]*sizeof(float3), cudaMemcpyDeviceToDevice);
 					cudaErrorCheck(__FILE__, __LINE__);
 				}
 			}	
