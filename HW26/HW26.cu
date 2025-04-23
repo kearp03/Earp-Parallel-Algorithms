@@ -220,7 +220,7 @@ __global__ void getForces(float3 *p, float3 *v, float3 *f, float *m, float g, fl
 __global__ void moveBodies(float3 *p, float3 *v, float3 *f, float *m, float damp, float dt, float t, int nPerGPU, int n, int device)
 {
 	int offset = nPerGPU*device;	
-	int i = threadIdx.x + blockDim.x*blockIdx.x + offset;
+	int i = threadIdx.x + blockDim.x*blockIdx.x;
 	if(i < nPerGPU)
 	{
 		i += offset;
