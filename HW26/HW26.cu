@@ -46,6 +46,7 @@ dim3 GridSize;
 
 // Function prototypes
 void cudaErrorCheck(const char *, int);
+void cudaDeviceSynchronizeAll();
 void drawPicture();
 void setup();
 __global__ void getForces(float3 *, float3 *, float3 *, float *, float, float, int, int, int);
@@ -62,6 +63,19 @@ void cudaErrorCheck(const char *file, int line)
 	{
 		printf("\n CUDA ERROR: message = %s, File = %s, Line = %d\n", cudaGetErrorString(error), file, line);
 		exit(0);
+	}
+}
+
+void cudaDeviceSynchronizeAll()
+{
+	int numberOfGpus;
+	cudaGetDeviceCount(&numberOfGpus);
+	
+	for(int i = 0; i < numberOfGpus; i++)
+	{
+		cudaSetDevice(i);
+		cudaDeviceSynchronize();
+		cudaErrorCheck(__FILE__, __LINE__);
 	}
 }
 
@@ -256,7 +270,7 @@ void nBody()
 	
 	while(t < RUN_TIME)
 	{
-		// Adjusting bodies
+		// Calculating forces on each body.
 		for(int i = 0; i < NumberOfGpus; i++)
     	{
 			cudaSetDevice(i);
@@ -266,17 +280,22 @@ void nBody()
 			cudaMemPrefetchAsync(M, N*sizeof(float), i);
 			getForces<<<GridSize,BlockSize>>>(P, V, F, M, G, H, NPerGPU, N, i);
 			cudaErrorCheck(__FILE__, __LINE__);
-			moveBodies<<<GridSize,BlockSize>>>(P, V, F, M, Damp, dt, t, NPerGPU, N, i);
-			cudaErrorCheck(__FILE__, __LINE__);
+			
 		}
 		
 		// Syncing CPU with GPUs.
+		cudaDeviceSynchronizeAll();
+
+		// Moving bodies
 		for(int i = 0; i < NumberOfGpus; i++)
-    	{
+		{
 			cudaSetDevice(i);
-			cudaDeviceSynchronize();
+			moveBodies<<<GridSize,BlockSize>>>(P, V, F, M, Damp, dt, t, NPerGPU, N, i);
 			cudaErrorCheck(__FILE__, __LINE__);
 		}
+
+		// Syncing CPU with GPUs.
+		cudaDeviceSynchronizeAll();
 
 		if(drawCount == DRAW_RATE) 
 		{	
