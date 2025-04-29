@@ -1,0 +1,1 @@
+nvcc HW28.cu -o temp
